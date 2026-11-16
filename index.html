@@ -1,0 +1,2002 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBF7F0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="학습 플래너">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23FBF7F0'/%3E%3Cpath d='M14 20h16v26H14z' fill='%23C9DBBE'/%3E%3Cpath d='M34 20h16v26H34z' fill='%23AEC6CC'/%3E%3Cpath d='M30 18v30' stroke='%23809A7C' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>학습 플래너</title>
+<style>
+  :root{
+    --cream:#FBF7F0;
+    --card:#FFFDF9;
+    --sage:#7E9B80;
+    --sage-deep:#5A7660;
+    --sage-soft:#E6EFE2;
+    --blue:#8FA8C0;
+    --blue-soft:#E9F0F5;
+    --sand:#C7A98B;
+    --sand-soft:#F5EDE2;
+    --lav:#A795B8;
+    --lav-soft:#EFEAF4;
+    --clay:#C08E86;
+    --clay-soft:#F7EAE7;
+    --ink:#37403A;
+    --ink-soft:#5F6B62;
+    --muted:#96A093;
+    --line:rgba(126,155,128,.14);
+    --shadow:0 10px 26px rgba(96,112,90,.08);
+    --shadow-soft:0 4px 14px rgba(96,112,90,.06);
+    --r:22px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(120% 55% at 100% 0%, #F7F2E6 0%, rgba(247,242,230,0) 62%),
+      radial-gradient(90% 45% at 0% 8%, #EAF1E7 0%, rgba(234,241,231,0) 58%),
+      linear-gradient(180deg, #FCFAF4 0%, #F8F5EC 45%, #F4F2EA 100%);
+    min-height:100vh; min-height:100dvh;
+    letter-spacing:-0.01em;
+    font-size:15px;
+  }
+  .app{ max-width:430px; margin:0 auto; padding: calc(env(safe-area-inset-top) + 12px) 16px calc(96px + env(safe-area-inset-bottom)); }
+
+  /* ---------- top bar ---------- */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 2px 14px; }
+  .brand{ display:flex; gap:9px; align-items:center; min-width:0; }
+  .brand .mark{ font-size:22px; line-height:1; }
+  .brand h1{ font-size:18px; margin:0; font-weight:800; letter-spacing:-0.03em; white-space:nowrap; }
+  .brand p{ margin:1px 0 0; font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dday{
+    flex:0 0 auto; font-size:12.5px; font-weight:800; color:var(--sage-deep);
+    background:rgba(230,239,226,.85); border:1px solid var(--line);
+    border-radius:999px; padding:7px 12px; font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    box-shadow:var(--shadow); padding:16px; margin-bottom:12px;
+  }
+  .card h2{ font-size:17px; margin:0 0 4px; font-weight:800; letter-spacing:-0.03em; line-height:1.35; }
+  .card h3{ font-size:14.5px; margin:0 0 10px; font-weight:800; letter-spacing:-0.02em; display:flex; align-items:center; gap:6px; }
+  .eyebrow{ margin:0; font-size:11.5px; font-weight:700; color:var(--sage); letter-spacing:0.01em; }
+  .muted{ color:var(--muted); }
+  .small{ font-size:12px; line-height:1.55; }
+  .hidden{ display:none !important; }
+  .tab-panel{ animation:fadeIn .26s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  /* ---------- hero ---------- */
+  .hero{ padding:16px 14px 14px; }
+  .hero-top{ display:flex; align-items:flex-start; gap:6px; }
+  .daynav{
+    flex:0 0 auto; width:30px; height:30px; border-radius:50%; border:1px solid var(--line);
+    background:#F7F4EC; color:var(--ink-soft); font-size:16px; line-height:1; font-family:inherit;
+    display:flex; align-items:center; justify-content:center; padding:0; margin-top:2px;
+  }
+  .daynav:active{ transform:scale(.94); }
+  .hero-date{ flex:1 1 auto; text-align:center; min-width:0; }
+  .hero-date h2{ font-size:16.5px; margin:2px 0 0; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:12px 0 4px; }
+  .pill{
+    font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:999px;
+    background:#F6F3EB; color:var(--ink-soft); border:1px solid var(--line);
+    font-variant-numeric:tabular-nums;
+  }
+  .pill.sage{ background:var(--sage-soft); color:var(--sage-deep); border-color:transparent; }
+  .pill.amber{ background:var(--sand-soft); color:#8C6B47; border-color:transparent; }
+  .pill.rose{ background:var(--clay-soft); color:#9C5F55; border-color:transparent; }
+
+  /* ---------- gauge ---------- */
+  .gauge{ margin-top:12px; }
+  .gauge-head{ display:flex; justify-content:space-between; align-items:baseline; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px; font-variant-numeric:tabular-nums; }
+  .gauge-head .left{ color:var(--sage-deep); }
+  .track{ height:10px; border-radius:999px; background:#EFEBE1; overflow:hidden; }
+  .track .fill{ height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#9BB894,#7E9B80); transition:width .45s cubic-bezier(.2,.7,.3,1); }
+  .track[data-state="over"] .fill{ background:linear-gradient(90deg,#D3A48E,#BE8A78); }
+  .track.thin{ height:7px; }
+  .track .fill.blue{ background:linear-gradient(90deg,#A9BFD4,#8FA8C0); }
+  .track .fill.sand{ background:linear-gradient(90deg,#DCC4A9,#C7A98B); }
+  .track .fill.lav{ background:linear-gradient(90deg,#BFB1CE,#A795B8); }
+  .track .fill.clay{ background:linear-gradient(90deg,#D6A9A2,#C08E86); }
+
+  /* ---------- tasks ---------- */
+  .task{
+    display:flex; gap:10px; padding:12px 10px; border-radius:16px;
+    background:#FBFAF5; border:1px solid rgba(126,155,128,.10); margin-bottom:8px;
+    transition:background .18s ease, transform .14s ease;
+  }
+  .task:last-child{ margin-bottom:0; }
+  .task:active{ transform:scale(.995); }
+  .task[data-checked="1"]{ background:#F3F6EE; }
+  .task[data-checked="1"] .task-title{ color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
+  .cb{
+    flex:0 0 auto; width:21px; height:21px; border-radius:7px; border:1.6px solid #C6CFC2;
+    background:#fff; margin-top:1px; display:flex; align-items:center; justify-content:center;
+    font-size:12px; color:#fff; cursor:pointer; transition:background .16s ease, border-color .16s ease;
+  }
+  .task[data-checked="1"] .cb{ background:var(--sage); border-color:var(--sage); }
+  .cb::after{ content:"✓"; opacity:0; font-weight:900; }
+  .task[data-checked="1"] .cb::after{ opacity:1; }
+  .task-body{ min-width:0; flex:1 1 auto; }
+  .task-top{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .tag{ font-size:10.5px; font-weight:800; padding:2.5px 7px; border-radius:999px; letter-spacing:-0.01em; }
+  .t-korean{ background:var(--sage-soft); color:#4F6B52; }
+  .t-english{ background:var(--blue-soft); color:#4C6784; }
+  .t-ethics{ background:var(--sand-soft); color:#87673F; }
+  .t-sociology{ background:var(--lav-soft); color:#67577A; }
+  .t-history{ background:var(--clay-soft); color:#8E564C; }
+  .task-title{ font-size:13.5px; font-weight:750; line-height:1.35; letter-spacing:-0.02em; }
+  .min{ margin-left:auto; font-size:11.5px; font-weight:800; color:var(--sage-deep); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .task-detail{ margin:5px 0 0; font-size:12px; color:var(--ink-soft); line-height:1.5; }
+  .steps{ margin:6px 0 0; padding-left:16px; font-size:11.5px; color:var(--muted); line-height:1.65; }
+  .steps-line{ margin:7px 0 0; font-size:11px; color:#8F9A8B; line-height:1.55; letter-spacing:-0.01em; }
+  .steps-line b{ font-weight:800; color:#7E9B80; margin-right:1px; }
+  .task-note{ margin:8px 0 0; font-size:11.5px; color:#9A7B52; background:var(--sand-soft); border-radius:12px; padding:8px 10px; line-height:1.5; }
+
+  /* ---------- concept cards ---------- */
+  .concept-wrap{ display:grid; gap:8px; }
+  .concept{
+    text-align:left; font-family:inherit; border:1px solid rgba(167,149,184,.28);
+    background:#FAF8FC; border-radius:16px; padding:11px 12px; cursor:pointer; width:100%;
+    transition:background .18s ease, transform .14s ease;
+  }
+  .concept:active{ transform:scale(.994); }
+  .concept .cname{ font-size:13px; font-weight:800; color:#5C4E70; letter-spacing:-0.02em; }
+  .concept .chint{ font-size:11.5px; color:#8C7FA0; margin-top:2px; }
+  .concept .cbody{ margin-top:8px; font-size:12.5px; line-height:1.62; color:var(--ink-soft); display:none; }
+  .concept[data-open="1"] .cbody{ display:block; }
+  .concept[data-open="1"]{ background:#F5F1FA; }
+  .concept .cbody b{ color:#5C4E70; }
+  .concept .eg{ display:block; margin-top:6px; padding:7px 9px; background:#fff; border-radius:10px; font-size:12px; color:#6B6076; border:1px solid rgba(167,149,184,.2); }
+
+  /* ---------- buttons ---------- */
+  .btn{
+    border:0; font-family:inherit; font-weight:750; font-size:14px; border-radius:15px;
+    padding:12px 16px; cursor:pointer; transition:transform .14s ease, background .18s ease;
+  }
+  .btn:active{ transform:scale(.975); }
+  .btn.primary{ background:linear-gradient(160deg,#8DAA8C 0%,#71906F 100%); color:#FFFDF8; box-shadow:0 8px 18px rgba(113,144,111,.26); width:100%; }
+  .btn.ghost{ background:#F4F1E8; color:var(--ink-soft); }
+  .btn.tiny{ font-size:12px; padding:8px 12px; border-radius:12px; }
+  .btn.danger{ background:#FBEDEA; color:#A5675C; }
+  .row-btns{ display:flex; gap:8px; align-items:center; }
+  .row-btns .btn.primary{ width:auto; flex:1 1 auto; }
+
+  /* ---------- review list ---------- */
+  .rev{ padding:12px 0; border-bottom:1px solid rgba(126,155,128,.10); }
+  .rev:last-child{ border-bottom:0; padding-bottom:2px; }
+  .rev-top{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .rev-title{ font-size:13px; font-weight:750; letter-spacing:-0.02em; }
+  .badge{ font-size:10.5px; font-weight:800; padding:2.5px 7px; border-radius:999px; white-space:nowrap; }
+  .b-late{ background:var(--clay-soft); color:#9C5F55; }
+  .b-today{ background:var(--sage-soft); color:#4F6B52; }
+  .b-soon{ background:#F3F1E8; color:#8A8674; }
+  .b-done{ background:#F0F2EE; color:#8F997F; }
+  .b-weak{ background:#F6E8DE; color:#9A6A45; }
+  .rev-meta{ font-size:11.5px; color:var(--muted); margin-top:3px; font-variant-numeric:tabular-nums; }
+  .rev-actions{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+  .sec-label{ font-size:11.5px; font-weight:800; color:var(--muted); margin:14px 0 2px; letter-spacing:0.02em; }
+  .sec-label:first-child{ margin-top:0; }
+  .empty{ font-size:12.5px; color:var(--muted); line-height:1.6; padding:8px 0; }
+
+  /* ---------- records ---------- */
+  .rec{ display:flex; gap:10px; padding:11px 0; border-bottom:1px solid rgba(126,155,128,.10); }
+  .rec:last-child{ border-bottom:0; }
+  .rec-body{ flex:1 1 auto; min-width:0; }
+  .rec-date{ font-size:11px; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .rec-title{ font-size:13px; font-weight:750; margin-top:2px; letter-spacing:-0.02em; }
+  .rec-sub{ font-size:11.5px; color:var(--ink-soft); margin-top:3px; line-height:1.5; }
+  .rec-side{ text-align:right; flex:0 0 auto; }
+  .rec-min{ font-size:12.5px; font-weight:800; color:var(--sage-deep); font-variant-numeric:tabular-nums; }
+  .icon-btn{ border:0; background:transparent; font-family:inherit; font-size:11.5px; color:var(--muted); padding:4px 2px; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+
+  /* ---------- progress ---------- */
+  .subj{ margin-bottom:12px; }
+  .subj:last-child{ margin-bottom:0; }
+  .subj-top{ display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+  .subj-name{ font-size:13px; font-weight:800; letter-spacing:-0.02em; }
+  .subj-pct{ margin-left:auto; font-size:12px; font-weight:800; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .subj-meta{ font-size:11px; color:var(--muted); margin-top:4px; font-variant-numeric:tabular-nums; }
+  .wk{ display:flex; align-items:flex-end; gap:7px; height:96px; margin:6px 0 4px; }
+  .wk-day{ flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:5px; height:100%; }
+  .wk-bar{ width:100%; max-width:24px; background:#F2EFE6; border-radius:7px 7px 5px 5px; overflow:hidden; flex:0 0 auto; display:flex; align-items:flex-end; }
+  .wk-bar i{ display:block; width:100%; background:linear-gradient(180deg,#A9C3A2,#7E9B80); border-radius:7px 7px 5px 5px; }
+  .wk-day[data-today="1"] .wk-bar{ background:#E4EDDF; box-shadow:0 0 0 1.5px rgba(126,155,128,.35); }
+  .wk-day span{ font-size:10px; color:var(--muted); font-weight:700; }
+  .wk-day[data-today="1"] span{ color:var(--sage-deep); }
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .stat{ background:#FBFAF5; border:1px solid rgba(126,155,128,.10); border-radius:16px; padding:11px 12px; }
+  .stat b{ display:block; font-size:17px; font-weight:800; color:var(--sage-deep); font-variant-numeric:tabular-nums; letter-spacing:-0.02em; }
+  .stat span{ font-size:11px; color:var(--muted); }
+  .road{ display:grid; gap:8px; }
+  .road-item{ display:flex; gap:9px; align-items:flex-start; padding:10px 11px; border-radius:14px; background:#FBFAF5; border:1px solid rgba(126,155,128,.10); }
+  .road-item[data-now="1"]{ background:var(--sage-soft); border-color:transparent; }
+  .road-dot{ flex:0 0 auto; width:8px; height:8px; border-radius:50%; background:#D3D8CC; margin-top:5px; }
+  .road-item[data-now="1"] .road-dot{ background:var(--sage); box-shadow:0 0 0 4px rgba(126,155,128,.18); }
+  .road-body b{ font-size:12.5px; display:block; letter-spacing:-0.02em; }
+  .road-body span{ font-size:11px; color:var(--muted); line-height:1.5; display:block; margin-top:2px; }
+  pre.share{
+    white-space:pre-wrap; word-break:break-word; font-family:inherit; font-size:12px; line-height:1.62;
+    background:#F8F5ED; border-radius:14px; padding:11px 12px; margin:9px 0 0; color:var(--ink-soft);
+    border:1px solid rgba(126,155,128,.12); max-height:260px; overflow:auto;
+  }
+  .src{ font-size:11px; color:var(--muted); line-height:1.65; }
+  .src a{ color:var(--sage-deep); text-decoration:none; border-bottom:1px solid rgba(126,155,128,.35); word-break:break-all; }
+  .src li{ margin-bottom:4px; }
+
+  /* ---------- tab bar ---------- */
+  .tabbar{
+    position:fixed; left:50%; bottom:0; transform:translateX(-50%);
+    width:100%; max-width:430px; display:flex; gap:4px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(255,253,249,.9);
+    backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+    border-top:1px solid var(--line); z-index:20;
+  }
+  .tabbar button{
+    flex:1; border:0; background:transparent; border-radius:15px; padding:7px 2px 6px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit;
+    font-size:10.5px; font-weight:750; color:var(--muted); cursor:pointer;
+    transition:background .18s ease, color .18s ease, transform .16s ease;
+  }
+  .tabbar button .ic{ font-size:18px; line-height:1; filter:grayscale(.4); transition:filter .18s ease, transform .18s ease; }
+  .tabbar button[aria-selected="true"]{ background:var(--sage-soft); color:var(--sage-deep); }
+  .tabbar button[aria-selected="true"] .ic{ filter:none; transform:translateY(-1px); }
+  .tabbar button:active{ transform:scale(.97); }
+  .tabbar .dot{ position:absolute; top:5px; right:calc(50% - 16px); width:6px; height:6px; border-radius:50%; background:var(--clay); }
+  .tabbar button{ position:relative; }
+
+  /* ---------- sheet ---------- */
+  .sheet-wrap{ position:fixed; inset:0; z-index:40; display:flex; align-items:flex-end; justify-content:center; }
+  .sheet-wrap.hidden{ display:none !important; }
+  .scrim{ position:absolute; inset:0; background:rgba(45,52,45,.30); backdrop-filter:blur(2px); animation:fadeIn .2s ease; }
+  .sheet{
+    position:relative; width:100%; max-width:430px; background:var(--card);
+    border-radius:26px 26px 0 0; padding:8px 16px calc(20px + env(safe-area-inset-bottom));
+    max-height:92vh; overflow-y:auto; box-shadow:0 -10px 40px rgba(60,70,60,.18);
+    animation:slideUp .3s cubic-bezier(.2,.8,.25,1);
+  }
+  @keyframes slideUp{ from{ transform:translateY(24px); opacity:.6; } to{ transform:none; opacity:1; } }
+  .sheet-grab{ width:38px; height:4px; border-radius:99px; background:#E4DFD3; margin:6px auto 12px; }
+  .sheet h2{ font-size:17px; margin:0 0 14px; font-weight:800; letter-spacing:-0.03em; }
+  .field{ margin-bottom:12px; }
+  .field > label{ display:block; font-size:12px; font-weight:750; color:var(--ink-soft); margin-bottom:6px; }
+  .field .hint{ font-size:11px; color:var(--muted); margin-top:4px; line-height:1.45; }
+  input[type="text"], input[type="number"], input[type="date"], select, textarea{
+    width:100%; font-family:inherit; font-size:14px; color:var(--ink);
+    border:1px solid #E7E2D6; background:#FCFAF5; border-radius:13px; padding:11px 12px;
+    -webkit-appearance:none; appearance:none;
+  }
+  textarea{ min-height:64px; resize:vertical; line-height:1.55; }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-color:rgba(126,155,128,.65);
+    box-shadow:0 0 0 3px rgba(126,155,128,.14); background:#fff;
+  }
+  select{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5' fill='none' stroke='%2396A093' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; background-size:18px; padding-right:34px; }
+  .seg{ display:flex; gap:6px; }
+  .seg button{
+    flex:1; font-family:inherit; font-size:12.5px; font-weight:750; padding:9px 4px; border-radius:12px;
+    border:1px solid #E7E2D6; background:#FCFAF5; color:var(--ink-soft); cursor:pointer;
+  }
+  .seg button[aria-pressed="true"]{ background:var(--sage-soft); border-color:transparent; color:var(--sage-deep); }
+  .two{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .acc-line{ display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); background:#F6F3EB; border-radius:12px; padding:9px 12px; font-variant-numeric:tabular-nums; }
+  .acc-line b{ color:var(--sage-deep); }
+  .useg{ display:flex; gap:6px; }
+  .useg button{
+    flex:1; font-family:inherit; font-size:13px; font-weight:800; padding:9px 0; border-radius:12px;
+    border:1px solid #E7E2D6; background:#FCFAF5; color:var(--ink-soft); cursor:pointer;
+  }
+  .useg button[aria-pressed="true"]{ background:var(--sage-soft); border-color:transparent; color:var(--sage-deep); }
+
+  /* ---------- toast ---------- */
+  #toast{
+    position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(10px);
+    background:rgba(58,68,58,.94); color:#FFFDF8; font-size:12.5px; font-weight:700;
+    padding:10px 16px; border-radius:14px; opacity:0; pointer-events:none; transition:opacity .24s ease, transform .24s ease;
+    z-index:60; max-width:88vw; text-align:center; line-height:1.4;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">📚</span>
+      <div>
+        <h1>학습 플래너</h1>
+        <p>독학사 1단계 · 한능검 심화</p>
+      </div>
+    </div>
+    <div class="dday" id="ddayPill">D-103</div>
+  </header>
+
+  <main>
+    <!-- ================== 오늘 ================== -->
+    <section id="panel-today" class="tab-panel" aria-label="오늘 계획">
+      <div class="card hero">
+        <div class="hero-top">
+          <button class="daynav" id="prevDay" aria-label="이전 날 보기">‹</button>
+          <div class="hero-date">
+            <p class="eyebrow" id="todayLine">2026년 11월 17일 화요일 · Day 7</p>
+            <h2 id="todayTitle">오늘의 계획</h2>
+          </div>
+          <button class="daynav" id="nextDay" aria-label="다음 날 보기">›</button>
+        </div>
+        <div class="meta-row">
+          <span class="pill sage" id="limitPill">오늘 60분</span>
+          <span class="pill" id="planPill">계획 0분</span>
+          <span class="pill" id="weekPill">이번 주 0분</span>
+        </div>
+        <div class="gauge">
+          <div class="gauge-head"><span id="usedLabel">사용 0분</span><span class="left" id="leftLabel">남은 60분</span></div>
+          <div class="track" id="useTrack" role="progressbar" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0">
+            <div class="fill" id="useFill"></div>
+          </div>
+          <p class="muted small" id="gaugeNote" style="margin:7px 0 0"></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>오늘 계획 <span class="muted small" id="taskSum" style="font-weight:600"></span></h3>
+        <div id="taskList"></div>
+        <p class="task-note hidden" id="deferNote"></p>
+      </div>
+
+      <div class="card" id="weakCard">
+        <h3>사회학개론 · 쉬운 개념 카드</h3>
+        <p class="muted small" style="margin:-4px 0 10px">「제1장 제1절 사회학의 창시자들」이해가 안 되는 부분만 눌러서 펴 봐. 카드를 다 읽었으면 <b>책 덮고 한 문장씩 설명하기</b>까지 해 보자.</p>
+        <div class="concept-wrap" id="conceptList"></div>
+      </div>
+
+      <div class="card hidden" id="carryCard">
+        <h3>밀린 과제</h3>
+        <p class="muted small" style="margin:-4px 0 8px">한 번에 몰아서 다 하지 않아. 오늘 시간에 맞는 것만 골라서 가져와.</p>
+        <div id="carryList"></div>
+      </div>
+
+      <div class="card">
+        <h3>아침 브리핑</h3>
+        <p class="muted small" style="margin:-4px 0 0">날짜·시간·과목별 범위·복습·예상 소요시간이 다 들어 있어. 어디든 붙여넣어 공유할 수 있어.</p>
+        <div class="row-btns" style="margin-top:10px">
+          <button class="btn ghost tiny" id="copyBrief">브리핑 복사</button>
+          <button class="btn ghost tiny" id="toggleBrief">내용 보기</button>
+        </div>
+        <pre class="share hidden" id="briefPreview"></pre>
+      </div>
+    </section>
+
+    <!-- ================== 간격복습 ================== -->
+    <section id="panel-review" class="tab-panel hidden" aria-label="간격복습">
+      <div class="card">
+        <h3>간격복습</h3>
+        <p class="muted small" style="margin:-4px 0 10px">실제로 완료 보고한 단원만 D+1 · D+3 · D+7 · D+14 · D+30 일정이 생겨. 완료 안 한 건 여기 안 올라와.</p>
+        <div class="stat-grid">
+          <div class="stat"><b id="revLateN">0</b><span>지연</span></div>
+          <div class="stat"><b id="revTodayN">0</b><span>오늘</span></div>
+          <div class="stat"><b id="revDonePct">0%</b><span>복습 완료율</span></div>
+          <div class="stat"><b id="revUnitN">0</b><span>복습 대상 단원</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div id="revList"></div>
+      </div>
+      <div class="card">
+        <h3>복습 5단계</h3>
+        <ol class="steps" style="font-size:12px; color:var(--ink-soft); padding-left:18px">
+          <li>책 덮고 핵심 개념 회상</li>
+          <li>주요 용어와 학자 설명</li>
+          <li>개념 간 차이 비교</li>
+          <li>확인문제·기출 문제풀이</li>
+          <li>오답 원인 분석</li>
+        </ol>
+        <p class="muted small" style="margin:10px 0 0">정답률 70% 미만이거나 이해도 2점 이하면 그 단원은 자동으로 <b>보충 필요</b>로 표시되고, 다음 계획에서 신규 진도를 줄여요.</p>
+      </div>
+    </section>
+
+    <!-- ================== 기록 ================== -->
+    <section id="panel-record" class="tab-panel hidden" aria-label="기록하기">
+      <div class="card">
+        <h3>학습 기록</h3>
+        <p class="muted small" style="margin:-4px 0 12px">보고한 것만 기록돼. 계획에 있던 시간이랑 실제 공부한 시간은 따로 관리해.</p>
+        <button class="btn primary" id="openAdd">+ 오늘 학습 기록하기</button>
+      </div>
+      <div class="card">
+        <h3>기록 목록 <span class="muted small" id="recCount" style="font-weight:600"></span></h3>
+        <div id="recList"></div>
+      </div>
+    </section>
+
+    <!-- ================== 진도 ================== -->
+    <section id="panel-progress" class="tab-panel hidden" aria-label="진도 점검">
+      <div class="card">
+        <h3>과목별 진도</h3>
+        <div id="subjList"></div>
+        <p class="muted small" style="margin:10px 0 0" id="progNote"></p>
+      </div>
+      <div class="card">
+        <h3>이번 주 공부시간</h3>
+        <div class="wk" id="weekBars"></div>
+        <div class="gauge-head" style="margin-top:2px"><span id="weekUsed">0분</span><span class="left">/ 660분 (11시간)</span></div>
+        <p class="muted small" style="margin:6px 0 0" id="weekNote"></p>
+      </div>
+      <div class="card">
+        <h3>점검</h3>
+        <div class="stat-grid">
+          <div class="stat"><b id="accPct">-</b><span>문제풀이 정답률</span></div>
+          <div class="stat"><b id="qTotal">-</b><span>푼 문제 수</span></div>
+          <div class="stat"><b id="revRate">0%</b><span>복습 완료율</span></div>
+          <div class="stat"><b id="studyDays">0일</b><span>학습 기록 있는 날</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>이번 달</h3>
+        <div class="stat-grid">
+          <div class="stat"><b id="monthUnits">0</b><span>완료 단원</span></div>
+          <div class="stat"><b id="monthMin">0분</b><span>공부한 시간</span></div>
+          <div class="stat"><b id="monthDays">0일</b><span>기록한 날</span></div>
+          <div class="stat"><b id="monthLeft">0일</b><span>목표까지 남은 날</span></div>
+        </div>
+        <p class="muted small" style="margin:10px 0 0" id="monthNote"></p>
+      </div>
+      <div class="card">
+        <h3>장기 로드맵</h3>
+        <div class="road" id="roadList"></div>
+      </div>
+      <div class="card">
+        <h3>주간 점검 텍스트</h3>
+        <div class="row-btns" style="margin-top:2px">
+          <button class="btn ghost tiny" id="copyWeekly">주간 점검 복사</button>
+          <button class="btn ghost tiny" id="toggleWeekly">내용 보기</button>
+        </div>
+        <pre class="share hidden" id="weeklyPreview"></pre>
+      </div>
+      <div class="card">
+        <h3>교재 · 출처</h3>
+        <ul class="src" id="srcList"></ul>
+        <p class="src" style="margin:8px 0 0">확인되지 않은 단원명·페이지는 넣지 않았어. 교재 목차가 실제와 다르면 기록할 때 <b>단원 직접 입력</b>으로 바꿔 주면 돼.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar" role="tablist" aria-label="탭">
+  <button id="tab-today" role="tab" aria-selected="true" data-tab="today"><span class="ic">☀️</span>오늘</button>
+  <button id="tab-review" role="tab" aria-selected="false" data-tab="review"><span class="ic">🔁</span>간격복습</button>
+  <button id="tab-record" role="tab" aria-selected="false" data-tab="record"><span class="ic">✏️</span>기록</button>
+  <button id="tab-progress" role="tab" aria-selected="false" data-tab="progress"><span class="ic">📈</span>진도</button>
+</nav>
+
+<!-- ================== 기록 시트 ================== -->
+<div class="sheet-wrap hidden" id="sheetWrap" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="scrim" id="sheetScrim"></div>
+  <div class="sheet">
+    <div class="sheet-grab"></div>
+    <h2 id="sheetTitle">학습 결과 기록</h2>
+
+    <div class="field">
+      <label for="recDate">날짜</label>
+      <input type="date" id="recDate">
+    </div>
+
+    <div class="field">
+      <label>구분</label>
+      <div class="seg" id="kindSeg">
+        <button type="button" data-kind="study" aria-pressed="true">신규 학습</button>
+        <button type="button" data-kind="review" aria-pressed="false">복습</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="recSubject">과목</label>
+      <select id="recSubject"></select>
+    </div>
+
+    <div class="field">
+      <label for="recUnit">단원</label>
+      <select id="recUnit"></select>
+      <p class="hint" id="unitHint">교재 목차 기준 단원이야. 목록에 없으면 직접 입력으로 바꿔 줘.</p>
+      <input type="text" id="recUnitCustom" class="hidden" placeholder="예: 제1장 제3절 (교재 목차 확인 후 입력)" style="margin-top:8px">
+    </div>
+
+    <div class="field" id="stepField" style="display:none">
+      <label for="recStep">복습 단계</label>
+      <select id="recStep">
+        <option value="1">D+1</option>
+        <option value="3">D+3</option>
+        <option value="7">D+7</option>
+        <option value="14">D+14</option>
+        <option value="30">D+30</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="recMinutes">실제 공부시간 (분)</label>
+      <input type="number" id="recMinutes" min="0" max="600" step="5" placeholder="예: 25">
+      <p class="hint">모르면 비워 둬도 돼. 계획 시간과 섞지 않고 따로 셀게.</p>
+    </div>
+
+    <div class="field">
+      <label for="recPage">완료한 페이지 / 강의</label>
+      <input type="text" id="recPage" placeholder="예: p.32~48 · 또는 1강">
+    </div>
+
+    <div class="field">
+      <label>문제 풀이</label>
+      <div class="two">
+        <input type="number" id="recQuestions" min="0" max="200" placeholder="문제 수">
+        <input type="number" id="recCorrect" min="0" max="200" placeholder="정답 수">
+      </div>
+      <div class="acc-line" style="margin-top:8px"><span>정답률 자동 계산</span><b id="accAuto">-</b></div>
+    </div>
+
+    <div class="field">
+      <label>이해도</label>
+      <div class="useg" id="undSeg">
+        <button type="button" data-u="1" aria-pressed="false">1</button>
+        <button type="button" data-u="2" aria-pressed="false">2</button>
+        <button type="button" data-u="3" aria-pressed="false">3</button>
+        <button type="button" data-u="4" aria-pressed="false">4</button>
+        <button type="button" data-u="5" aria-pressed="false">5</button>
+        <button type="button" data-u="0" aria-pressed="true">미보고</button>
+      </div>
+      <p class="hint">1~2점이면 그 단원은 보충 필요로 표시돼.</p>
+    </div>
+
+    <div class="field">
+      <label for="recHard">이해가 어려웠던 개념</label>
+      <textarea id="recHard" placeholder="예: 콩트랑 뒤르켐이 뭘 다르게 본 건지 헷갈림"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="recTodo">미완료 과제</label>
+      <textarea id="recTodo" placeholder="예: 확인문제 8번까지 못 풂"></textarea>
+    </div>
+
+    <div class="field">
+      <button type="button" class="icon-btn" id="toggleCustomUnit">단원 직접 입력으로 바꾸기</button>
+    </div>
+
+    <div class="row-btns">
+      <button class="btn ghost" id="cancelRec">취소</button>
+      <button class="btn primary" id="saveRec">저장</button>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn danger tiny hidden" id="deleteRec">이 기록 삭제</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* =========================================================
+   0. 설정 (윤서 님 기준)
+   ========================================================= */
+var CFG = {
+  start: '2026-11-11',            // Day 1
+  target: '2027-02-28',
+  limits: [180, 60, 60, 60, 60, 60, 180],  // 일~토 (분)
+  weekLimit: 660,                 // 주간 11시간
+  alloc: {                        // 요일별 기본 배분 (getDay: 0=일)
+    1: ['english'],
+    2: ['korean'],
+    3: ['ethics'],
+    4: ['sociology'],
+    5: ['english', 'korean'],
+    6: ['history', 'korean'],
+    0: ['history', 'ethics', 'sociology']
+  },
+  unitMin: { korean: 25, english: 25, ethics: 30, sociology: 30, history: 30 },
+  reviewMin: { 1: 7, 3: 8, 7: 10, 14: 12, 30: 15 },
+  reviewSteps: [1, 3, 7, 14, 30],
+  weakMin: 15,
+  maxOverduePerDay: 2
+};
+
+var WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/* =========================================================
+   1. 교재 목차 (확인된 실제 목차만)
+   - 시대에듀 A+ 독학사 1단계 교양과정 「한권합격」 2026년판
+   - 큰별쌤 최태성의 별별한국사 한국사능력검정시험 심화 2026 (40강)
+   ========================================================= */
+var SUBJECTS = [
+  {
+    id: 'korean', name: '국어', short: '국어', tag: 'korean', color: 'sage',
+    book: '시대에듀 A+ 독학사 1단계 교양과정 국어 한권합격 (2026, 개정18판)',
+    url: 'https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000011937565',
+    rows: [
+      ['제1장 국어학', '제1절 국어에 대한 이해'],
+      ['제1장 국어학', '제2절 훈민정음과 한글에 대한 이해'],
+      ['제1장 국어학', '제3절 표준어와 방언'],
+      ['제1장 국어학', '제4절 언어 예절'],
+      ['제1장 국어학', '제5절 올바른 국어 사용'],
+      ['제2장 고전문학', '제1절 총론'],
+      ['제2장 고전문학', '제2절 고전시가'],
+      ['제2장 고전문학', '제3절 고전산문'],
+      ['제2장 고전문학', '제4절 한문학'],
+      ['제2장 고전문학', '제5절 구비문학'],
+      ['제3장 현대문학', '제1절 현대문학의 이해'],
+      ['제3장 현대문학', '제2절 현대시'],
+      ['제3장 현대문학', '제3절 현대소설'],
+      ['제3장 현대문학', '제4절 현대수필'],
+      ['제3장 현대문학', '제5절 현대희곡']
+    ]
+  },
+  {
+    id: 'english', name: '영어', short: '영어', tag: 'english', color: 'blue',
+    book: '시대에듀 A+ 독학사 1단계 교양과정 영어 한권합격 (2026, 개정17판)',
+    url: 'https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000011933835',
+    rows: [
+      ['제1장 어휘 및 숙어', null],
+      ['제2장 문법과 구조', '제1절 구두점'],
+      ['제2장 문법과 구조', '제2절 문법'],
+      ['제3장 독해력', '제1절 대의 파악'],
+      ['제3장 독해력', '제2절 주제 파악'],
+      ['제3장 독해력', '제3절 세부 사항 파악'],
+      ['제3장 독해력', '제4절 결론 도출'],
+      ['제3장 독해력', '제5절 논조 이해'],
+      ['제3장 독해력', '제6절 글의 상호관계 분석'],
+      ['제3장 독해력', '제7절 영문 국역'],
+      ['제4장 영작', null],
+      ['제5장 생활영어', null]
+    ]
+  },
+  {
+    id: 'ethics', name: '현대사회와 윤리', short: '윤리', tag: 'ethics', color: 'sand',
+    book: '시대에듀 A+ 독학사 1단계 교양과정 현대사회와 윤리 한권합격 (2026, 개정17판)',
+    url: 'https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000012026426',
+    rows: [
+      ['제1장 인간과 윤리', '제1절 인간의 삶과 윤리'],
+      ['제1장 인간과 윤리', '제2절 윤리학의 기본 원리'],
+      ['제1장 인간과 윤리', '제3절 실천 윤리'],
+      ['제2장 동양 윤리와 한국 윤리 사상', '제1절 동양 및 한국 윤리 사상의 흐름'],
+      ['제2장 동양 윤리와 한국 윤리 사상', '제2절 고유 사상'],
+      ['제2장 동양 윤리와 한국 윤리 사상', '제3절 유교 사상'],
+      ['제2장 동양 윤리와 한국 윤리 사상', '제4절 불교 사상'],
+      ['제2장 동양 윤리와 한국 윤리 사상', '제5절 도가·도교 사상'],
+      ['제3장 서양 윤리 사상', '제1절 서양 윤리 사상의 흐름'],
+      ['제3장 서양 윤리 사상', '제2절 고대 및 중세 윤리 사상'],
+      ['제3장 서양 윤리 사상', '제3절 근대 윤리 사상'],
+      ['제3장 서양 윤리 사상', '제4절 현대 윤리 사상'],
+      ['제4장 사회 사상', '제1절 사회 사상의 흐름'],
+      ['제4장 사회 사상', '제2절 민주주의 이념과 전개'],
+      ['제4장 사회 사상', '제3절 자본주의와 사회주의'],
+      ['제4장 사회 사상', '제4절 인간과 국가']
+    ]
+  },
+  {
+    id: 'sociology', name: '사회학개론', short: '사회학', tag: 'sociology', color: 'lav',
+    book: '시대에듀 A+ 독학사 1단계 교양과정 사회학개론 한권합격 (2026)',
+    url: 'https://ebook-product.kyobobook.co.kr/dig/epd/ebook/E000012017396',
+    rows: [
+      ['제1장 사회학의 성립', '제1절 사회학의 창시자들'],
+      ['제1장 사회학의 성립', '제2절 사회학 이론의 선구자들'],
+      ['제1장 사회학의 성립', '제3절 현대적 사회학'],
+      ['제2장 사회학의 대상과 방법', '제1절 사회학의 대상'],
+      ['제2장 사회학의 대상과 방법', '제2절 사회학의 연구방법'],
+      ['제2장 사회학의 대상과 방법', '제3절 사회 조사의 방법'],
+      ['제3장 사회학의 이론', '제1절 현대 사회와 사회학'],
+      ['제3장 사회학의 이론', '제2절 현대 사회학의 이론 조류'],
+      ['제3장 사회학의 이론', '제3절 가치중립의 문제'],
+      ['제3장 사회학의 이론', '제4절 새로운 이론의 도전'],
+      ['제4장 사회학의 과제', '제1절 사회학 이론의 수준'],
+      ['제4장 사회학의 과제', '제2절 이론과 실천'],
+      ['제4장 사회학의 과제', '제3절 한국 사회학의 과제'],
+      ['제5장 문화', '제1절 문화의 개념과 속성'],
+      ['제5장 문화', '제2절 문화의 내용과 기능'],
+      ['제5장 문화', '제3절 문화의 다양성'],
+      ['제5장 문화', '제4절 문화의 변동'],
+      ['제5장 문화', '제5절 클로드 레비-스트로스에 대한 이해'],
+      ['제5장 문화', '제6절 한국 문화'],
+      ['제6장 사회화와 퍼스낼리티', '제1절 사회화의 뜻과 의의'],
+      ['제6장 사회화와 퍼스낼리티', '제2절 사회화의 과정'],
+      ['제6장 사회화와 퍼스낼리티', '제3절 사회화의 행동자(대행자)'],
+      ['제6장 사회화와 퍼스낼리티', '제4절 사회화의 결과'],
+      ['제6장 사회화와 퍼스낼리티', '제5절 퍼스낼리티의 형성 요인'],
+      ['제6장 사회화와 퍼스낼리티', '제6절 사회 문화의 유형과 퍼스낼리티'],
+      ['제7장 지위와 역할', '제1절 사회적 지위'],
+      ['제7장 지위와 역할', '제2절 역할의 개념과 체제'],
+      ['제7장 지위와 역할', '제3절 역할 행동과 역할 기대'],
+      ['제7장 지위와 역할', '제4절 역할 갈등'],
+      ['제7장 지위와 역할', '제5절 역할 소원과 인간의 자율성'],
+      ['제8장 사회 집단', '제1절 개인과 집단'],
+      ['제8장 사회 집단', '제2절 사회 집단의 형성요인'],
+      ['제8장 사회 집단', '제3절 집단의 종류'],
+      ['제8장 사회 집단', '제4절 집단의 유지와 와해'],
+      ['제8장 사회 집단', '제5절 자발적 결사체(자발적 이차집단)'],
+      ['제9장 일탈 행동', '제1절 일탈의 개념'],
+      ['제9장 일탈 행동', '제2절 일탈을 개인의 특성으로 보는 견해'],
+      ['제9장 일탈 행동', '제3절 문화적·사회 구조적 환경에서 찾는 견해(기능론적 일탈이론)'],
+      ['제9장 일탈 행동', '제4절 범죄의 유형과 범죄이론'],
+      ['제9장 일탈 행동', '제5절 사회 통제'],
+      ['제10장 사회 구조론', '제1절 사회 구조의 개념'],
+      ['제10장 사회 구조론', '제2절 사회 구조의 이론'],
+      ['제10장 사회 구조론', '제3절 구조론적 관계의 유형들'],
+      ['제10장 사회 구조론', '제4절 사회 구조와 인간 자유 의지의 문제'],
+      ['제11장 사회 조직', '제1절 조직이론'],
+      ['제11장 사회 조직', '제2절 관료제'],
+      ['제11장 사회 조직', '제3절 조직의 연대성과 생산성'],
+      ['제11장 사회 조직', '제4절 조직과 리더십'],
+      ['제12장 사회 제도', '제1절 사회 제도의 개념'],
+      ['제12장 사회 제도', '제2절 사회 제도의 유형'],
+      ['제13장 사회 계층', '제1절 사회 계층의 기초 개념'],
+      ['제13장 사회 계층', '제2절 계층 이론'],
+      ['제13장 사회 계층', '제3절 계급 구조'],
+      ['제13장 사회 계층', '제4절 사회 이동'],
+      ['제13장 사회 계층', '제5절 한국의 계급 구성'],
+      ['제14장 가족', '제1절 가족의 개념'],
+      ['제14장 가족', '제2절 결혼 및 가족의 형태'],
+      ['제14장 가족', '제3절 가족의 사회적 기능'],
+      ['제14장 가족', '제4절 가족제도의 변천과 여성문제'],
+      ['제14장 가족', '제5절 한국의 가족'],
+      ['제15장 농촌 사회와 도시 사회', '제1절 농촌 사회'],
+      ['제15장 농촌 사회와 도시 사회', '제2절 도시 사회'],
+      ['제16장 현대 사회', '제1절 사회 체제의 이행'],
+      ['제16장 현대 사회', '제2절 현대사회론'],
+      ['제16장 현대 사회', '제3절 제3세계의 사회이론'],
+      ['제17장 집합 행동과 사회 운동', '제1절 집합 행동의 의미'],
+      ['제17장 집합 행동과 사회 운동', '제2절 군중과 공중'],
+      ['제17장 집합 행동과 사회 운동', '제3절 사회 운동'],
+      ['제17장 집합 행동과 사회 운동', '제4절 혁명'],
+      ['제18장 사회 변동과 사회 발전', '제1절 사회 변동의 의미'],
+      ['제18장 사회 변동과 사회 발전', '제2절 사회 변동의 이론'],
+      ['제18장 사회 변동과 사회 발전', '제3절 사회 발전의 문제'],
+      ['제19장 한국 근·현대의 사회 변동과 발전', '제1절 19세기 중엽의 한국 사회'],
+      ['제19장 한국 근·현대의 사회 변동과 발전', '제2절 체제 개혁 시도의 계승과 좌절'],
+      ['제19장 한국 근·현대의 사회 변동과 발전', '제3절 일제 치하의 한국 사회'],
+      ['제19장 한국 근·현대의 사회 변동과 발전', '제4절 해방과 한국 사회'],
+      ['제19장 한국 근·현대의 사회 변동과 발전', '제5절 21세기 정보 사회의 전망']
+    ]
+  },
+  {
+    id: 'history', name: '한국사(한능검 심화)', short: '한국사', tag: 'history', color: 'clay',
+    book: '큰별쌤 최태성의 별별한국사 한국사능력검정시험 심화 (2026) — 40강',
+    url: 'https://bookstore12.com/products/book-9791138934428',
+    rows: [
+      [null, '제1강 역사는 왜 배우는가'],
+      [null, '제2강 선사 시대'],
+      [null, '제3강 여러 나라의 성장'],
+      [null, '제4강 고대(고구려, 가야)'],
+      [null, '제5강 고대(백제, 신라)'],
+      [null, '제6강 고대(통일 신라, 발해)'],
+      [null, '제7강 고대(경제, 사회)'],
+      [null, '제8강 고대(문화 1)'],
+      [null, '제9강 고대(문화 2)'],
+      [null, '제10강 고려(초기 정치)'],
+      [null, '제11강 고려(중기 정치~무신 정변)'],
+      [null, '제12강 고려(외교)'],
+      [null, '제13강 고려(경제, 사회)'],
+      [null, '제14강 고려(문화 1)'],
+      [null, '제15강 고려(문화 2)'],
+      [null, '제16강 조선 전기(정치)'],
+      [null, '제17강 조선(조직)'],
+      [null, '제18강 조선 전기(외교)'],
+      [null, '제19강 조선 전기(경제, 사회)'],
+      [null, '제20강 조선 전기(문화 1)'],
+      [null, '제21강 조선 전기(문화 2)'],
+      [null, '제22강 조선 후기(정치)'],
+      [null, '제23강 조선 후기(조직, 외교)'],
+      [null, '제24강 조선 후기(경제)'],
+      [null, '제25강 조선 후기(사회)'],
+      [null, '제26강 조선 후기(문화 1)'],
+      [null, '제27강 조선 후기(문화 2)'],
+      [null, '제28강 개항기(흥선 대원군)'],
+      [null, '제29강 개항기(개항~갑신정변)'],
+      [null, '제30강 개항기(동학 농민 운동~대한 제국)'],
+      [null, '제31강 국권 피탈과 저항'],
+      [null, '제32강 개항기(경제)'],
+      [null, '제33강 개항기(문화)'],
+      [null, '제34강 일제 강점기(식민 통치)'],
+      [null, '제35강 일제 강점기(1910년대 저항)'],
+      [null, '제36강 일제 강점기(1920년대 저항)'],
+      [null, '제37강 일제 강점기(1930년대 이후 저항)'],
+      [null, '제38강 현대(광복~6·25 전쟁)'],
+      [null, '제39강 현대(민주주의 발전)'],
+      [null, '제40강 현대(경제 발전과 통일 정책)']
+    ]
+  }
+];
+
+/* 취약 보충 개념 카드 — 「제1장 제1절 사회학의 창시자들」 */
+var CONCEPT_CARDS = {
+  'sociology-1': {
+    title: '제1장 제1절 사회학의 창시자들',
+    intro: '네 명만 잡으면 이 절은 끝나. "이 사람은 사회를 뭐라고 봤나" 한 줄씩.',
+    cards: [
+      {
+        name: '콩트 (Comte)',
+        hint: '사회학이라는 이름을 만든 사람',
+        body: '<b>실증주의</b>. 사회도 자연처럼 관찰하고 검증해서 설명할 수 있다고 봤어. 그래서 "사회를 과학으로 연구하는 학문"에 <b>사회학(sociology)</b>이라는 이름을 처음 붙였어.',
+        eg: '예: "기분 탓이야"가 아니라 "왜 그런 일이 반복되는지 관찰해서 규칙을 찾자"는 태도.'
+      },
+      {
+        name: '마르크스 (Marx)',
+        hint: '갈등·계급·경제가 중심',
+        body: '사회의 바닥에는 <b>경제(생산관계)</b>가 있고, 그것이 사회의 모습을 결정한다고 봤어. 이익이 다른 <b>계급</b>끼리 부딪히는 갈등이 사회를 움직인다고 설명했어.',
+        eg: '예: 알바비를 더 받고 싶은 사람과 인건비를 줄이고 싶은 사장님 — 같은 회사인데 이해가 반대죠.'
+      },
+      {
+        name: '베버 (Weber)',
+        hint: '행위를 "이해"하는 학문',
+        body: '사회학은 사람들이 <b>왜 그렇게 행동했는지(사회적 행위)</b>를 이해하는 학문이라고 봤어. 연구할 때 자기 가치를 섞지 않는 <b>가치중립</b>, 비교를 위한 <b>이상형</b> 개념으로 유명해.',
+        eg: '예: "사람이 왜 편의점에 가나"를 통계가 아니라 그 사람의 이유에서 찾는 쪽.'
+      },
+      {
+        name: '뒤르켐 (Durkheim)',
+        hint: '사회적 사실 · 자살론 · 연대',
+        body: '개인 밖에 있으면서 개인을 제약하는 <b>사회적 사실</b>을 연구 대상으로 삼았어. <b>자살론</b>, 기계적·유기적 <b>연대</b>, 규범이 무너진 상태인 <b>아노미</b>가 대표 개념이야.',
+        eg: '예: 유행이나 분위기처럼 "내가 혼자 바꿀 수 없는 것"도 연구 대상이라는 뜻.'
+      }
+    ]
+  }
+};
+
+/* =========================================================
+   2. 날짜 유틸
+   ========================================================= */
+var DAY_MS = 86400000;
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+function isoOf(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+function parseISO(s){ var p = String(s).split('-'); return new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); }
+function utcOf(s){ var p = String(s).split('-'); return Date.UTC(Number(p[0]), Number(p[1])-1, Number(p[2])); }
+function diffDays(a, b){ return Math.round((utcOf(b) - utcOf(a)) / DAY_MS); }
+function addDays(s, n){ var d = parseISO(s); d.setDate(d.getDate() + n); return isoOf(d); }
+function weekdayOf(s){ return parseISO(s).getDay(); }
+function isValidISO(s){ return /^\d{4}-\d{2}-\d{2}$/.test(String(s||'')) && !isNaN(parseISO(s).getTime()); }
+function fmtDate(s){
+  var d = parseISO(s);
+  return d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + WEEKDAYS[d.getDay()] + '요일';
+}
+function fmtShort(s){
+  var d = parseISO(s);
+  return (d.getMonth()+1) + '/' + d.getDate() + '(' + WEEKDAYS[d.getDay()] + ')';
+}
+function todayReal(){
+  var p = null;
+  try { p = new URLSearchParams(location.search).get('date'); } catch (e) { p = null; }
+  if (p && isValidISO(p)) return p;
+  if (window.__PLANNER_TODAY__ && isValidISO(window.__PLANNER_TODAY__)) return window.__PLANNER_TODAY__;
+  return isoOf(new Date());
+}
+function dayNumber(s){ return diffDays(CFG.start, s) + 1; }
+function ddayFrom(s){ return diffDays(s, CFG.target); }
+
+/* =========================================================
+   3. 단원 평탄화
+   ========================================================= */
+var UNITS = [], UNIT_MAP = {}, SUBJ_MAP = {};
+SUBJECTS.forEach(function(s){
+  SUBJ_MAP[s.id] = s;
+  s.units = [];
+  s.rows.forEach(function(row, i){
+    var group = row[0], sec = row[1];
+    var label = sec ? (group ? group + ' ' + sec : sec) : group;
+    var secTitle = sec ? sec.replace(/^제\d+절\s*/, '') : (group || '').replace(/^제\d+[장강]\s*/, '');
+    var u = {
+      id: s.id + '-' + (i + 1), idx: i, subject: s.id, group: group, section: sec,
+      label: label, short: sec || group, secTitle: secTitle
+    };
+    s.units.push(u); UNITS.push(u); UNIT_MAP[u.id] = u;
+  });
+});
+function unitById(id){ return UNIT_MAP[id] || null; }
+function subjectById(id){ return SUBJ_MAP[id] || null; }
+function unitLabel(id, custom){
+  var u = unitById(id);
+  if (u) return u.label;
+  return custom || '단원 미입력';
+}
+
+/* =========================================================
+   4. 저장소
+   ========================================================= */
+var STORE = 'studyPlanner.v2';
+var memoryState = null;
+
+function seedRecords(){
+  return [
+    { id:'seed-1', date:'2026-11-11', kind:'study', subject:'ethics', unitId:'ethics-1',
+      minutes:null, pages:'', questions:null, correct:null, understanding:null, hard:'', todo:'',
+      note:'「인간의 삶과 윤리」 첫 학습 완료 보고 (실제 공부시간·페이지·문제 수·이해도는 미보고)',
+      seed:true, createdAt:'2026-11-11T23:00:00' },
+    { id:'seed-2', date:'2026-11-12', kind:'study', subject:'sociology', unitId:'sociology-1',
+      minutes:null, pages:'', questions:null, correct:null, understanding:null, hard:'',
+      todo:'', note:'「사회학의 성립」 첫 학습 + 확인문제 완료. 이해가 안 되는 내용이 많다고 보고 → 취약 과목',
+      weakFlag:true, seed:true, createdAt:'2026-11-12T23:00:00' },
+    { id:'seed-3', date:'2026-11-12', kind:'review', subject:'ethics', unitId:'ethics-1', step:1,
+      minutes:null, questions:null, correct:null, understanding:null,
+      note:'전날 학습분 D+1 복습 완료', seed:true, createdAt:'2026-11-12T23:10:00' },
+    { id:'seed-4', date:'2026-11-13', kind:'review', subject:'sociology', unitId:'sociology-1', step:1,
+      minutes:null, questions:null, correct:null, understanding:null,
+      note:'「사회학의 성립」 보충 복습 완료 (같은 날 국어·영어는 진도 미완료)', seed:true,
+      createdAt:'2026-11-13T23:10:00' }
+  ];
+}
+function blankState(){
+  return { version: 2, seeded: false, records: [], checks: {}, carry: {}, viewDate: null };
+}
+function loadState(){
+  if (memoryState) return memoryState;
+  var st = null;
+  try {
+    var raw = localStorage.getItem(STORE);
+    if (raw) { var p = JSON.parse(raw); if (p && p.version === 2) st = p; }
+  } catch (e) { st = null; }
+  if (!st) st = blankState();
+  if (!st.seeded) { st.records = seedRecords(); st.seeded = true; }
+  if (!st.carry) st.carry = {};
+  if (!st.checks) st.checks = {};
+  memoryState = st;
+  return st;
+}
+function saveState(){
+  var st = loadState();
+  try { localStorage.setItem(STORE, JSON.stringify(st)); } catch (e) { /* file:// 등: 메모리 유지 */ }
+}
+
+/* =========================================================
+   5. 기록 조회
+   ========================================================= */
+function recordsOn(dateStr){
+  return loadState().records.filter(function(r){ return r.date === dateStr; });
+}
+function minutesOn(dateStr){
+  return recordsOn(dateStr).reduce(function(a, r){ return a + (Number(r.minutes) || 0); }, 0);
+}
+function firstStudyMap(){
+  var map = {};
+  loadState().records.forEach(function(r){
+    if (r.kind !== 'study') return;
+    if (!map[r.unitId] || r.date < map[r.unitId]) map[r.unitId] = r.date;
+  });
+  return map;
+}
+function unitStudies(unitId){
+  return loadState().records.filter(function(r){ return r.kind === 'study' && r.unitId === unitId; });
+}
+function unitWeak(unitId){
+  return loadState().records.some(function(r){
+    if (r.unitId !== unitId) return false;
+    if (r.weakFlag) return true;
+    if (typeof r.understanding === 'number' && r.understanding > 0 && r.understanding <= 2) return true;
+    if (typeof r.questions === 'number' && r.questions >= 5 && typeof r.correct === 'number') {
+      return (r.correct / r.questions) < 0.7;
+    }
+    return false;
+  });
+}
+function weakUnits(){
+  var seen = {}, out = [];
+  var first = firstStudyMap();
+  Object.keys(first).forEach(function(uid){
+    if (unitWeak(uid)) { seen[uid] = 1; out.push(uid); }
+  });
+  return out;
+}
+function weakSubjects(){
+  var s = {};
+  weakUnits().forEach(function(uid){ var u = unitById(uid); if (u) s[u.subject] = 1; });
+  return s;
+}
+function doneUnits(subjectId){
+  var first = firstStudyMap(), n = 0;
+  Object.keys(first).forEach(function(uid){
+    var u = unitById(uid);
+    if (u && (!subjectId || u.subject === subjectId)) n++;
+  });
+  return n;
+}
+
+/* ---------- 간격복습 ---------- */
+function reviewItems(uptoDate){
+  var first = firstStudyMap();
+  var recs = loadState().records.filter(function(r){ return r.kind === 'review'; });
+  var out = [];
+  Object.keys(first).forEach(function(uid){
+    var u = unitById(uid);
+    if (!u) return;
+    var base = first[uid];
+    CFG.reviewSteps.forEach(function(step){
+      var due = addDays(base, step);
+      var done = recs.filter(function(r){ return r.unitId === uid && Number(r.step) === step; })
+                     .sort(function(a, b){ return a.date < b.date ? -1 : 1; })[0] || null;
+      var status;
+      if (done) status = 'done';
+      else if (due < uptoDate) status = 'late';
+      else if (due === uptoDate) status = 'today';
+      else status = 'soon';
+      out.push({
+        unitId: uid, subject: u.subject, label: u.label, step: step, base: base,
+        due: due, done: done, status: status, weak: unitWeak(uid),
+        id: 'rev:' + uid + ':' + step
+      });
+    });
+  });
+  out.sort(function(a, b){
+    var rank = { late: 0, today: 1, soon: 2, done: 3 };
+    if (rank[a.status] !== rank[b.status]) return rank[a.status] - rank[b.status];
+    return a.due < b.due ? -1 : (a.due > b.due ? 1 : 0);
+  });
+  return out;
+}
+function reviewDoneRate(uptoDate){
+  var items = reviewItems(uptoDate).filter(function(i){ return i.due <= uptoDate; });
+  if (!items.length) return null;
+  var done = items.filter(function(i){ return i.status === 'done'; }).length;
+  return Math.round(done / items.length * 100);
+}
+
+/* =========================================================
+   6. 오늘 계획 생성
+   ========================================================= */
+function dayLimit(dateStr){ return CFG.limits[weekdayOf(dateStr)]; }
+function weekStartOf(dateStr){
+  var wd = weekdayOf(dateStr);          // 0=일
+  var back = (wd + 6) % 7;              // 월요일까지 거슬러
+  return addDays(dateStr, -back);
+}
+function weekMinutesUsed(dateStr){
+  var ws = weekStartOf(dateStr), total = 0;
+  for (var i = 0; i < 7; i++) total += minutesOn(addDays(ws, i));
+  return total;
+}
+function nextUnitFor(subjectId, exclude){
+  var first = firstStudyMap();
+  var list = SUBJ_MAP[subjectId].units;
+  for (var i = 0; i < list.length; i++) {
+    var u = list[i];
+    if (first[u.id]) continue;
+    if (exclude && exclude[u.id]) continue;
+    return u;
+  }
+  return null;
+}
+function unitHead(u){
+  return u.group && u.section ? u.group + ' · ' : (u.group ? u.group + ' · ' : '');
+}
+function newTaskDetail(u){
+  var s = u.subject, head = unitHead(u);
+  if (s === 'sociology') {
+    return head + '쉬운 개념 카드 먼저 훑고 → 교재 1회독하며 학자 이름 표시 → 학자별 주장 한 줄로 적기 → 책 덮고 콩트·마르크스·베버·뒤르켐 설명하기';
+  }
+  if (s === 'history') {
+    return head + '강의 듣기 → 판서 노트에 키워드만 적기 → 강의 끝나고 3분 동안 책 덮고 회상 → 확인문제 풀고 틀린 것 표시';
+  }
+  if (s === 'english') {
+    return head + '교재 1회독 → 모르는 어휘·구문 표시 → 예문 소리 내어 읽기 → 확인문제 풀고 오답 표시';
+  }
+  if (s === 'korean') {
+    return head + '교재 1회독 → 소제목마다 한 줄 요약 → 책 덮고 3문장으로 설명하기 → 확인문제 풀고 오답 표시';
+  }
+  return head + '교재 1회독 → 핵심 용어 5개 표시 → 책 덮고 설명하기 → 확인문제 풀고 오답 표시';
+}
+function reviewTaskDetail(it){
+  return unitHead(unitById(it.unitId)).replace(/ · $/, '');
+}
+
+function planFor(dateStr){
+  var limit = Math.min(dayLimit(dateStr), Math.max(0, CFG.weekLimit - weekMinutesUsed(dateStr) + minutesOn(dateStr)));
+  var used = minutesOn(dateStr);
+  var budget = Math.max(0, limit - used);
+  var tasks = [], deferred = [];
+
+  function add(task){
+    if (task.minutes <= budget) { tasks.push(task); budget -= task.minutes; return true; }
+    deferred.push(task);
+    return false;
+  }
+
+  var items = reviewItems(dateStr);
+  var todays = items.filter(function(i){ return i.status === 'today'; });
+  var lates = items.filter(function(i){ return i.status === 'late'; })
+                   .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
+                   .slice(0, CFG.maxOverduePerDay);
+
+  todays.forEach(function(it){
+    add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
+          subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
+          minutes: CFG.reviewMin[it.step],
+          title: 'D+' + it.step + ' 복습 · ' + unitById(it.unitId).secTitle,
+          detail: reviewTaskDetail(it), badge: it.weak ? '보충 필요' : '' });
+  });
+  lates.forEach(function(it){
+    add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
+          subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
+          minutes: CFG.reviewMin[it.step],
+          title: '밀린 D+' + it.step + ' 복습 · ' + unitById(it.unitId).secTitle,
+          detail: reviewTaskDetail(it) + ' (원래 ' + fmtShort(it.due) + ' 예정)',
+          badge: '지연' });
+  });
+
+  // 재배치해 둔 미완료 과제 (직접 '오늘로' 가져온 것만)
+  (loadState().carry[dateStr] || []).forEach(function(t){
+    add({ id: t.id, type: 'carry', kind: t.kind === 'review' ? 'review' : 'study',
+          subject: t.subject, unitId: t.unitId, step: t.step || null, label: t.label,
+          minutes: t.minutes, title: t.title, detail: t.detail, badge: '재배치' });
+  });
+
+  // 신규 진도 — 요일 배분 (과목당 하루 2단원까지, 배분 순서를 돌아가며)
+  var alloc = CFG.alloc[weekdayOf(dateStr)] || [];
+  var names = alloc.map(function(id){ return SUBJ_MAP[id].short; });
+  var ROUNDS = 2, assigned = {};
+  for (var round = 0; round < ROUNDS; round++) {
+    for (var ai = 0; ai < alloc.length; ai++) {
+      var sid = alloc[ai];
+      var u = nextUnitFor(sid, assigned);
+      if (!u) continue;
+      assigned[u.id] = 1;
+      var head = (round === 0 && doneUnits(sid) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
+      add({ id: 'new:' + u.id + '@' + dateStr, type: 'new', kind: 'study',
+            subject: sid, unitId: u.id, label: u.label,
+            minutes: CFG.unitMin[sid],
+            title: SUBJ_MAP[sid].short + head + u.secTitle,
+            detail: newTaskDetail(u), badge: '' });
+    }
+  }
+
+  // 취약 보충
+  var weak = weakUnits().filter(function(uid){
+    var today = recordsOn(dateStr).some(function(r){ return r.unitId === uid; });
+    return !today;
+  });
+  weak.slice(0, 1).forEach(function(uid){
+    var u = unitById(uid);
+    if (!u) return;
+    add({ id: 'weak:' + uid + '@' + dateStr, type: 'weak', kind: 'study',
+          subject: u.subject, unitId: uid, label: u.label, minutes: CFG.weakMin,
+          title: '취약 보충 · ' + u.secTitle,
+          detail: '쉬운 개념 카드 읽고 → 책 덮고 콩트·마르크스·베버·뒤르켐 한 문장씩 설명 → 막히는 사람만 카드 다시 보기',
+          badge: '취약' });
+  });
+
+  var total = tasks.reduce(function(a, t){ return a + t.minutes; }, 0);
+  return {
+    date: dateStr, day: dayNumber(dateStr), limit: limit, used: used,
+    remaining: Math.max(0, limit - used), total: total, tasks: tasks,
+    deferred: deferred, subjects: names, weak: weak
+  };
+}
+
+/* =========================================================
+   7. 텍스트 (아침 브리핑 / 주간 점검)
+   ========================================================= */
+function briefingText(dateStr){
+  var p = planFor(dateStr);
+  var d = ddayFrom(dateStr);
+  var L = [];
+  var dtxt = d > 0 ? 'D-' + d : (d === 0 ? 'D-DAY' : 'D+' + Math.abs(d));
+  L.push('📚 ' + fmtDate(dateStr) + ' · Day ' + p.day + ' (' + dtxt + ')');
+  L.push('오늘 학습 가능 시간: ' + p.limit + '분 · 계획 합계 ' + p.total + '분 (사용 ' + p.used + '분)');
+  L.push('');
+  var news = p.tasks.filter(function(t){ return t.type === 'new' || t.type === 'weak'; });
+  var revs = p.tasks.filter(function(t){ return t.type === 'review'; });
+  L.push('[신규 진도]');
+  if (!news.length) L.push('- 오늘은 신규 진도 없이 복습만');
+  news.forEach(function(t){
+    L.push('- ' + SUBJ_MAP[t.subject].name + ' · ' + t.label + ' (' + t.minutes + '분)' + (t.type === 'weak' ? ' [취약 보충]' : ''));
+    L.push('  → ' + t.detail);
+  });
+  L.push('');
+  L.push('[간격복습]');
+  if (!revs.length) L.push('- 오늘 예정된 복습 없음');
+  revs.forEach(function(t){
+    L.push('- ' + SUBJ_MAP[t.subject].name + ' · ' + t.title + ' (' + t.minutes + '분)');
+  });
+  L.push('');
+  L.push('[확인문제 · 오답]');
+  L.push('- 진도 낸 단원은 확인문제까지 풀고, 틀린 문제는 원인 한 줄 적기');
+  L.push('- 정답률 70% 미만이거나 이해도 2점 이하 → 다음 계획에서 신규 진도 줄이고 보충');
+  L.push('');
+  L.push('[체크리스트]');
+  p.tasks.forEach(function(t){ L.push('- [ ] ' + t.title + ' (' + t.minutes + '분)'); });
+  if (p.deferred.length) {
+    L.push('');
+    L.push('[오늘 시간 밖 → 후속 일정]');
+    p.deferred.forEach(function(t){ L.push('- ' + t.title + ' (' + t.minutes + '분)'); });
+  }
+  return L.join('\n');
+}
+function weeklyText(dateStr){
+  var ws = weekStartOf(dateStr);
+  var L = ['📊 주간 점검 (' + fmtShort(ws) + ' ~ ' + fmtShort(addDays(ws, 6)) + ')', ''];
+  var total = 0;
+  for (var i = 0; i < 7; i++) {
+    var dstr = addDays(ws, i), m = minutesOn(dstr), lim = dayLimit(dstr);
+    total += m;
+    L.push('- ' + fmtShort(dstr) + ' ' + (m ? m + '분' : '기록 없음') + ' / ' + lim + '분');
+  }
+  L.push('- 주간 합계: ' + total + '분 / ' + CFG.weekLimit + '분 (11시간)');
+  L.push('');
+  L.push('[과목별 진도]');
+  SUBJECTS.forEach(function(s){
+    L.push('- ' + s.name + ': ' + doneUnits(s.id) + '/' + s.units.length + '단원' + (weakSubjects()[s.id] ? ' (취약)' : ''));
+  });
+  var acc = accuracy();
+  L.push('');
+  L.push('[문제풀이] ' + (acc.pct === null ? '기록 없음' : '정답률 ' + acc.pct + '% · ' + acc.q + '문제'));
+  var rr = reviewDoneRate(dateStr);
+  L.push('[복습 완료율] ' + (rr === null ? '대상 없음' : rr + '%'));
+  var ms = monthStats(dateStr);
+  L.push('');
+  L.push('[이번 달] ' + ms.label + ' 완료 단원 ' + ms.units + '개 · 공부 ' + ms.minutes + '분 · 기록한 날 ' + ms.days + '일');
+  L.push('[최종 목표] 2027. 2. 28까지 ' + diffDays(dateStr, CFG.target) + '일 남음');
+  L.push('');
+  var wu = weakUnits();
+  if (wu.length) {
+    L.push('[취약 단원]');
+    wu.forEach(function(uid){ L.push('- ' + unitById(uid).label); });
+  }
+  L.push('');
+  L.push('[다음 주 우선순위]');
+  L.push('1) 취약 단원 보충 복습 먼저');
+  L.push('2) 밀린 복습은 하루 2건까지만');
+  L.push('3) 신규 진도는 평일 60분 · 주말 180분 안에서');
+  return L.join('\n');
+}
+function monthStats(dateStr){
+  var ym = dateStr.slice(0, 7);
+  var first = firstStudyMap(), units = 0, mins = 0, days = {};
+  Object.keys(first).forEach(function(uid){ if (first[uid].slice(0, 7) === ym) units++; });
+  loadState().records.forEach(function(r){
+    if (r.date.slice(0, 7) !== ym) return;
+    var m = Number(r.minutes) || 0;
+    mins += m;
+    if (m > 0) days[r.date] = 1;
+  });
+  return { units: units, minutes: mins, days: Object.keys(days).length,
+           label: (parseISO(dateStr).getMonth() + 1) + '월' };
+}
+function accuracy(){
+  var q = 0, c = 0;
+  loadState().records.forEach(function(r){
+    if (typeof r.questions === 'number' && r.questions > 0 && typeof r.correct === 'number') {
+      q += r.questions; c += Math.min(r.correct, r.questions);
+    }
+  });
+  return { q: q, c: c, pct: q > 0 ? Math.round(c / q * 100) : null };
+}
+
+/* =========================================================
+   8. 렌더
+   ========================================================= */
+var $ = function(id){ return document.getElementById(id); };
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+var viewDate = null;
+function currentView(){ return viewDate || todayReal(); }
+function toast(msg){
+  var el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.classList.remove('show'); }, 2200);
+}
+function checksFor(dateStr){
+  var st = loadState();
+  if (!st.checks[dateStr]) st.checks[dateStr] = {};
+  return st.checks[dateStr];
+}
+
+function renderToday(){
+  var dateStr = currentView();
+  var p = planFor(dateStr);
+  var st = loadState();
+  var isReal = dateStr === todayReal();
+  var d = ddayFrom(dateStr);
+
+  $('todayLine').textContent = fmtDate(dateStr) + ' · Day ' + p.day;
+  var titleBits = [], revN = 0, hasWeak = false;
+  p.tasks.forEach(function(t){
+    if (t.type === 'new') {
+      var n = SUBJ_MAP[t.subject].short;
+      if (titleBits.indexOf(n) < 0) titleBits.push(n);
+    }
+    if (t.type === 'review' || t.type === 'carry') revN++;
+    if (t.type === 'weak') hasWeak = true;
+  });
+  var tb = titleBits.slice();
+  if (revN) tb.push('복습 ' + revN + '건');
+  if (hasWeak) tb.push('취약 보충');
+  $('todayTitle').textContent = tb.length ? tb.join(' · ') : '쉬어 가는 날';
+  $('ddayPill').textContent = d > 0 ? 'D-' + d : (d === 0 ? 'D-DAY' : 'D+' + Math.abs(d));
+  $('ddayPill').setAttribute('title', '목표일 2027년 2월 28일');
+  $('limitPill').textContent = '오늘 ' + p.limit + '분';
+  $('planPill').textContent = '계획 ' + p.total + '분';
+  var wu = weekMinutesUsed(dateStr);
+  $('weekPill').textContent = '이번 주 ' + wu + '분';
+
+  // 게이지
+  var pct = p.limit > 0 ? Math.round(p.used / p.limit * 100) : 0;
+  $('useFill').style.width = Math.min(100, pct) + '%';
+  $('useTrack').setAttribute('aria-valuenow', String(Math.min(100, pct)));
+  $('useTrack').setAttribute('aria-valuemax', String(p.limit));
+  $('useTrack').setAttribute('data-state', p.used > p.limit ? 'over' : 'ok');
+  $('usedLabel').textContent = '사용 ' + p.used + '분';
+  $('leftLabel').textContent = (p.used > p.limit)
+    ? '한도보다 ' + (p.used - p.limit) + '분 더'
+    : '남은 ' + p.remaining + '분';
+  var gnote;
+  if (p.used > p.limit) gnote = '실제로 한 시간이 계획보다 많았어. 기록은 그대로 두고, 남은 하루는 쉬어도 괜찮아.';
+  else if (!p.tasks.length) gnote = '오늘은 배정된 과제가 없어. 쉬어 가도 되는 날이야.';
+  else if (p.total > p.remaining) gnote = '이미 ' + p.used + '분 했으니 계획 중 ' + (p.total - p.remaining) + '분은 다음 일정으로 넘길게.';
+  else gnote = '계획 ' + p.total + '분 · 남은 시간 ' + (p.remaining - p.total) + '분은 비워 뒀어.';
+  $('gaugeNote').textContent = gnote;
+
+  // 과제
+  var checks = checksFor(dateStr);
+  var html = '';
+  if (!p.tasks.length) {
+    html = '<p class="empty">오늘 배정된 과제가 없어. 대신 지난 복습을 하나 골라 가볍게 돌아봐도 좋아.</p>';
+  }
+  p.tasks.forEach(function(t){
+    var on = checks[t.id] ? 1 : 0;
+    var s = SUBJ_MAP[t.subject];
+    var steps = '';
+    if (t.type === 'review') {
+      steps = '<p class="steps-line"><b>①</b>책 덮고 회상 <b>②</b>주요 용어·학자 <b>③</b>차이 비교 <b>④</b>문제풀이 <b>⑤</b>오답 분석</p>';
+    }
+    html += '<label class="task" data-id="' + esc(t.id) + '" data-checked="' + on + '">'
+      + '<span class="cb" role="checkbox" aria-checked="' + (on ? 'true' : 'false') + '" tabindex="0"></span>'
+      + '<div class="task-body"><div class="task-top">'
+      + '<span class="tag t-' + s.tag + '">' + esc(s.short) + '</span>'
+      + (t.badge ? '<span class="badge ' + (t.badge === '취약' ? 'b-weak' : 'b-late') + '">' + esc(t.badge) + '</span>' : '')
+      + '<span class="min">' + t.minutes + '분</span>'
+      + '</div><p class="task-title" style="margin:5px 0 0">' + esc(t.title) + '</p>'
+      + '<p class="task-detail">' + esc(t.detail) + '</p>' + steps + '</div></label>';
+  });
+  $('taskList').innerHTML = html;
+  $('taskSum').textContent = p.total ? '· 합계 ' + p.total + '분 / ' + p.limit + '분' : '';
+  if (p.deferred.length) {
+    $('deferNote').classList.remove('hidden');
+    $('deferNote').textContent = '시간이 넘쳐서 오늘 넣지 않은 것: '
+      + p.deferred.map(function(t){ return t.title; }).join(', ')
+      + ' → 내일 몰아서 넣지 않고 우선순위 보고 다시 배치할게.';
+  } else {
+    $('deferNote').classList.add('hidden');
+  }
+
+  // 취약 카드
+  var weak = p.weak.length ? p.weak : weakUnits();
+  var cardHTML = '';
+  var withCards = weak.filter(function(uid){ return CONCEPT_CARDS[uid]; });
+  if (weak.length && !withCards.length) {
+    cardHTML = '<p class="empty">보충할 단원이 있어. 개념 카드는 교재 확인 후 채울게.</p>';
+  }
+  withCards.forEach(function(uid){
+    var g = CONCEPT_CARDS[uid];
+    cardHTML += '<p class="muted small" style="margin:0 0 6px">' + esc(g.intro) + '</p>';
+    g.cards.forEach(function(c){
+      cardHTML += '<button class="concept" data-card="1" data-open="0" type="button">'
+        + '<div class="cname">' + esc(c.name) + '</div>'
+        + '<div class="chint">' + esc(c.hint) + ' · 눌러서 펴기</div>'
+        + '<div class="cbody">' + c.body + '<span class="eg">' + esc(c.eg) + '</span></div></button>';
+    });
+  });
+  $('conceptList').innerHTML = cardHTML;
+  $('weakCard').classList.toggle('hidden', !cardHTML);
+
+  // 밀린 과제 — 실제로 체크리스트를 본 날(체크 기록이 있는 날)만 대상
+  var carry = [];
+  var carriedIds = {};
+  (p.tasks || []).forEach(function(t){ carriedIds[t.id] = 1; });
+  Object.keys(loadState().checks).forEach(function(dstr){
+    if (dstr >= dateStr || dstr < CFG.start) return;
+    if (diffDays(dstr, dateStr) > 7) return;
+    var pp = planFor(dstr);
+    var cc = loadState().checks[dstr] || {};
+    pp.tasks.forEach(function(t){
+      if (carriedIds[t.id]) return;
+      if (cc[t.id]) return;
+      if (recordsOn(dstr).some(function(r){ return r.unitId === t.unitId; })) return;
+      carry.push({ date: dstr, task: t });
+    });
+  });
+  if (carry.length) {
+    $('carryCard').classList.remove('hidden');
+    $('carryList').innerHTML = carry.slice(0, 4).map(function(c, i){
+      return '<div class="rec"><div class="rec-body"><div class="rec-date">' + esc(fmtShort(c.date)) + ' 미완료</div>'
+        + '<div class="rec-title">' + esc(c.task.title) + '</div>'
+        + '<div class="rec-sub">' + c.task.minutes + '분 · 오늘 남은 시간 ' + p.remaining + '분</div></div>'
+        + '<div class="rec-side"><button class="icon-btn" data-carry="' + i + '">오늘로</button></div></div>';
+    }).join('');
+    $('carryCard')._carry = carry;
+  } else {
+    $('carryCard').classList.add('hidden');
+  }
+
+  // 브리핑 텍스트
+  var txt = briefingText(dateStr);
+  $('briefPreview').textContent = txt;
+  $('briefPreview')._text = txt;
+  if (!isReal) $('todayLine').textContent += ' (다른 날 보기)';
+  renderReview();
+  renderProgress();
+}
+
+function renderReview(){
+  var dateStr = currentView();
+  var items = reviewItems(dateStr);
+  var late = items.filter(function(i){ return i.status === 'late'; });
+  var today = items.filter(function(i){ return i.status === 'today'; });
+  var soon = items.filter(function(i){ return i.status === 'soon'; }).slice(0, 12);
+  var done = items.filter(function(i){ return i.status === 'done'; });
+  var rate = reviewDoneRate(dateStr);
+  $('revLateN').textContent = late.length;
+  $('revTodayN').textContent = today.length;
+  $('revDonePct').textContent = (rate === null ? '-' : rate + '%');
+  $('revUnitN').textContent = Object.keys(firstStudyMap()).length;
+
+  function row(it, cls){
+    var s = SUBJ_MAP[it.subject];
+    var u = unitById(it.unitId) || { secTitle: it.label, group: '' };
+    var badge = it.status === 'late' ? '<span class="badge b-late">' + Math.abs(diffDays(it.due, dateStr)) + '일 지남</span>'
+      : it.status === 'today' ? '<span class="badge b-today">오늘</span>'
+      : it.status === 'done' ? '<span class="badge b-done">완료</span>'
+      : '<span class="badge b-soon">' + fmtShort(it.due) + '</span>';
+    var weakB = it.weak ? '<span class="badge b-weak">보충 필요</span>' : '';
+    var actions = '';
+    if (it.status !== 'done') {
+      actions = '<div class="rev-actions">'
+        + '<button class="btn ghost tiny" data-rev="' + esc(it.id) + '">복습 완료 기록</button></div>';
+    } else if (it.done) {
+      actions = '<div class="rev-meta">' + esc(fmtShort(it.done.date)) + ' 완료'
+        + (it.done.understanding ? ' · 이해도 ' + it.done.understanding : '') + '</div>';
+    }
+    return '<div class="rev" data-status="' + it.status + '">'
+      + '<div class="rev-top"><span class="tag t-' + s.tag + '">' + esc(s.short) + '</span>'
+      + '<span class="badge" style="background:#F3F1E8;color:#8A8674">D+' + it.step + '</span>'
+      + badge + weakB + '</div>'
+      + '<p class="rev-title" style="margin:6px 0 0">' + esc(u.secTitle) + '</p>'
+      + '<div class="rev-meta">' + (u.group ? esc(u.group) + ' · ' : '')
+      + '처음 학습 ' + esc(fmtShort(it.base)) + ' · 예정 ' + esc(fmtShort(it.due)) + '</div>'
+      + actions + '</div>';
+  }
+
+  var html = '';
+  if (!items.length) {
+    html = '<p class="empty">아직 완료 보고된 단원이 없어서 복습 일정도 없어. 학습을 기록하면 그날부터 D+1·3·7·14·30이 자동으로 생겨.</p>';
+  } else {
+    if (late.length) html += '<p class="sec-label">지연</p>' + late.map(function(i){ return row(i); }).join('');
+    if (today.length) html += '<p class="sec-label">오늘</p>' + today.map(function(i){ return row(i); }).join('');
+    if (soon.length) html += '<p class="sec-label">예정</p>' + soon.map(function(i){ return row(i); }).join('');
+    var doneShown = done.slice(-6).reverse();
+    if (doneShown.length) html += '<p class="sec-label">완료</p>' + doneShown.map(function(i){ return row(i); }).join('');
+  }
+  $('revList').innerHTML = html;
+
+  // 요약 통계
+  $('revDonePct').textContent = (rate === null ? '-' : rate + '%');
+  $('revRate').textContent = (rate === null ? '-' : rate + '%');
+  var acc = accuracy();
+  $('accPct').textContent = acc.pct === null ? '-' : acc.pct + '%';
+  $('qTotal').textContent = acc.q ? acc.q + '문제' : '-';
+  var days = {};
+  loadState().records.forEach(function(r){ if (Number(r.minutes) > 0) days[r.date] = 1; });
+  $('studyDays').textContent = Object.keys(days).length + '일';
+}
+
+function renderRecord(){
+  var recs = loadState().records.slice().sort(function(a, b){
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return (a.createdAt || '') < (b.createdAt || '') ? 1 : -1;
+  });
+  $('recCount').textContent = '· ' + recs.length + '건';
+  if (!recs.length) {
+    $('recList').innerHTML = '<p class="empty">아직 기록이 없어. 공부 끝나고 한 번만 남겨 주면 다음 계획에 바로 반영할게.</p>';
+    return;
+  }
+  var html = '', lastDate = '';
+  recs.forEach(function(r){
+    if (r.date !== lastDate) {
+      lastDate = r.date;
+      html += '<p class="sec-label">' + esc(fmtDate(r.date)) + ' · Day ' + dayNumber(r.date) + '</p>';
+    }
+    var s = SUBJ_MAP[r.subject] || { name: r.subject, tag: 'korean' };
+    var bits = [];
+    if (r.kind === 'review') bits.push('D+' + (r.step || 1) + ' 복습');
+    if (typeof r.minutes === 'number' && r.minutes > 0) bits.push(r.minutes + '분');
+    else bits.push('시간 미보고');
+    if (r.pages) bits.push(r.pages);
+    if (typeof r.questions === 'number' && r.questions > 0) {
+      bits.push('문제 ' + r.questions + '·정답 ' + (r.correct == null ? '-' : r.correct)
+        + (r.correct != null ? ' (' + Math.round(r.correct / r.questions * 100) + '%)' : ''));
+    }
+    if (r.understanding) bits.push('이해도 ' + r.understanding);
+    html += '<div class="rec"><div class="rec-body">'
+      + '<div class="rec-date"><span class="tag t-' + s.tag + '">' + esc(s.name) + '</span> '
+      + (r.kind === 'review' ? '복습' : '신규') + '</div>'
+      + '<div class="rec-title">' + esc(unitLabel(r.unitId, r.customUnit)) + '</div>'
+      + '<div class="rec-sub">' + esc(bits.join(' · ')) + '</div>'
+      + (r.hard ? '<div class="rec-sub">어려웠던 것: ' + esc(r.hard) + '</div>' : '')
+      + (r.todo ? '<div class="rec-sub">미완료: ' + esc(r.todo) + '</div>' : '')
+      + (r.weakFlag || (r.understanding && r.understanding <= 2) ? '<div class="rec-sub"><span class="badge b-weak">보충 필요</span></div>' : '')
+      + (r.note ? '<div class="rec-sub" style="color:#96A093">' + esc(r.note) + '</div>' : '')
+      + '</div><div class="rec-side">'
+      + '<button class="icon-btn" data-edit="' + esc(r.id) + '">수정</button></div></div>';
+  });
+  $('recList').innerHTML = html;
+}
+
+function renderProgress(){
+  var dateStr = currentView();
+  var ws = weekStartOf(dateStr);
+  var html = '';
+  SUBJECTS.forEach(function(s){
+    var done = doneUnits(s.id), n = s.units.length;
+    var pct = Math.round(done / n * 100);
+    var weak = !!weakSubjects()[s.id];
+    var first = firstStudyMap();
+    var nextU = nextUnitFor(s.id);
+    html += '<div class="subj">'
+      + '<div class="subj-top"><span class="tag t-' + s.tag + '">' + esc(s.name) + '</span>'
+      + (weak ? '<span class="badge b-weak">취약</span>' : '')
+      + '<span class="subj-pct">' + pct + '%</span></div>'
+      + '<div class="track thin"><div class="fill ' + s.color + '" style="width:' + pct + '%"></div></div>'
+      + '<div class="subj-meta">' + (done ? done + ' / ' + n + '단원 완료' : '0 / ' + n + '단원 · 아직 첫 진도 전')
+      + (nextU ? ' · 다음: ' + esc(nextU.short) : ' · 목차 끝까지 완료')
+      + '</div></div>';
+  });
+  $('subjList').innerHTML = html;
+
+  var used = 0, bars = '';
+  for (var i = 0; i < 7; i++) {
+    var dstr = addDays(ws, i), m = minutesOn(dstr), lim = dayLimit(dstr);
+    used += m;
+    var h = lim ? Math.min(100, Math.round(m / lim * 100)) : 0;
+    var cap = Math.round(lim / 180 * 100);   // 한도에 따라 칸 높이를 다르게(평일 33%, 주말 100%)
+    bars += '<div class="wk-day" data-today="' + (dstr === todayReal() ? '1' : '0') + '">'
+      + '<div class="wk-bar" style="height:' + cap + '%" title="' + m + '분 / ' + lim + '분">'
+      + '<i style="height:' + h + '%"></i></div>'
+      + '<span>' + WEEKDAYS[weekdayOf(dstr)] + '</span></div>';
+  }
+  $('weekBars').innerHTML = bars;
+  $('weekUsed').textContent = used + '분';
+  var wpct = Math.round(used / CFG.weekLimit * 100);
+  $('weekNote').textContent = wpct >= 100
+    ? '이번 주 한도(660분)를 다 채웠어. 남은 날은 복습만 가볍게 해도 충분해.'
+    : '이번 주 ' + wpct + '% · 남은 ' + (CFG.weekLimit - used) + '분. 평일 하루 60분, 주말 180분 기준이야.';
+
+  var left = diffDays(dateStr, CFG.target);
+  var totalUnits = UNITS.length;
+  var doneAll = Object.keys(firstStudyMap()).length;
+  $('progNote').textContent = '완료 보고된 단원만 세고 있어. 지금 ' + doneAll + ' / ' + totalUnits
+    + '단원 · 최종 목표까지 ' + left + '일.';
+
+  // 이번 달
+  var ms = monthStats(dateStr);
+  $('monthUnits').textContent = ms.units;
+  $('monthMin').textContent = ms.minutes + '분';
+  $('monthDays').textContent = ms.days + '일';
+  $('monthLeft').textContent = left + '일';
+  var remainUnits = Math.max(0, totalUnits - doneAll);
+  $('monthNote').textContent = ms.label + '에 ' + ms.units + '단원 완료 · 남은 단원 ' + remainUnits
+    + '개, 목표(2027. 2. 28)까지 ' + left + '일. 매월 1일에 여기서 한 번만 확인하면 돼.';
+
+  // 로드맵
+  var phases = [
+    { t: '1단계 · 기초이론', d: '2026년 11월 ~ 12월', b: '전 과목 개념 1회독. 이해 안 되면 넘기지 않고 보충', from: CFG.start, to: '2026-12-31' },
+    { t: '2단계 · 1회독 마무리 + 기출', d: '2027년 1월', b: '기본이론 마무리, 기출문제 시작, 오답 정리', from: '2027-01-01', to: '2027-01-31' },
+    { t: '3단계 · 반복 회독 + 실전', d: '2027년 2월', b: '반복 회독, 오답, 실전 모의고사 → 목표일 2/28', from: '2027-02-01', to: CFG.target }
+  ];
+  $('roadList').innerHTML = phases.map(function(p){
+    var now = dateStr >= p.from && dateStr <= p.to;
+    return '<div class="road-item" data-now="' + (now ? '1' : '0') + '"><span class="road-dot"></span>'
+      + '<div class="road-body"><b>' + esc(p.t) + (now ? ' · 지금' : '') + '</b>'
+      + '<span>' + esc(p.d) + ' — ' + esc(p.b) + '</span></div></div>';
+  }).join('');
+
+  // 출처
+  $('srcList').innerHTML = SUBJECTS.map(function(s){
+    return '<li>' + esc(s.name) + ' — ' + esc(s.book) + ' <a href="' + esc(s.url) + '" target="_blank" rel="noopener">목차</a></li>';
+  }).join('');
+  $('weeklyPreview').textContent = weeklyText(dateStr);
+}
+
+/* =========================================================
+   9. 탭 전환
+   ========================================================= */
+var TABS = ['today', 'review', 'record', 'progress'];
+function showTab(name){
+  TABS.forEach(function(t){
+    $('panel-' + t).classList.toggle('hidden', t !== name);
+    $('tab-' + t).setAttribute('aria-selected', t === name ? 'true' : 'false');
+  });
+  if (name === 'review') renderReview();
+  if (name === 'record') renderRecord();
+  if (name === 'progress') renderProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* =========================================================
+   10. 기록 시트
+   ========================================================= */
+var form = { id: null, kind: 'study', subject: 'korean', understanding: 0, custom: false, reviewItem: null };
+
+function fillSubjectSelect(){
+  $('recSubject').innerHTML = SUBJECTS.map(function(s){
+    return '<option value="' + s.id + '">' + esc(s.name) + '</option>';
+  }).join('');
+}
+function fillUnitSelect(){
+  var s = SUBJ_MAP[form.subject];
+  if (!s) return;
+  var first = firstStudyMap();
+  var html = s.units.map(function(u){
+    var mark = first[u.id] ? ' · 학습함' : '';
+    return '<option value="' + u.id + '">' + esc(u.label + mark) + '</option>';
+  }).join('');
+  html += '<option value="__custom">직접 입력</option>';
+  $('recUnit').innerHTML = html;
+  var next = nextUnitFor(form.subject);
+  if (next) $('recUnit').value = next.id;
+}
+function setKind(k){
+  form.kind = k;
+  Array.prototype.forEach.call($('kindSeg').children, function(b){
+    b.setAttribute('aria-pressed', b.getAttribute('data-kind') === k ? 'true' : 'false');
+  });
+  $('stepField').style.display = k === 'review' ? 'block' : 'none';
+}
+function setUnderstanding(v){
+  form.understanding = Number(v);
+  Array.prototype.forEach.call($('undSeg').children, function(b){
+    b.setAttribute('aria-pressed', Number(b.getAttribute('data-u')) === Number(v) ? 'true' : 'false');
+  });
+  updateAcc();
+}
+function updateAcc(){
+  var q = Number($('recQuestions').value), c = Number($('recCorrect').value);
+  if (q > 0 && $('recCorrect').value !== '' && !isNaN(c)) {
+    $('accAuto').textContent = Math.round(Math.min(c, q) / q * 100) + '%';
+  } else {
+    $('accAuto').textContent = '-';
+  }
+}
+function openSheet(opts){
+  form = { id: null, kind: 'study', subject: 'korean', understanding: 0, custom: false, reviewItem: null };
+  var rec = opts && opts.record ? opts.record : null;
+  var item = opts && opts.item ? opts.item : null;
+
+  $('sheetTitle').textContent = rec ? '기록 수정' : '학습 결과 기록';
+  $('deleteRec').classList.toggle('hidden', !rec);
+  $('deleteRec').textContent = '이 기록 삭제';
+
+  $('recDate').value = rec ? rec.date : (opts && opts.date) || todayReal();
+  fillSubjectSelect();
+  form.subject = rec ? rec.subject : (item ? item.subject : 'korean');
+  $('recSubject').value = form.subject;
+  fillUnitSelect();
+  if (rec) {
+    if (rec.customUnit) {
+      form.custom = true;
+      $('recUnit').value = '__custom';
+      $('recUnitCustom').value = rec.customUnit;
+      $('recUnitCustom').classList.remove('hidden');
+    } else {
+      $('recUnit').value = rec.unitId;
+      $('recUnitCustom').classList.add('hidden');
+    }
+  } else {
+    $('recUnitCustom').value = '';
+    $('recUnitCustom').classList.add('hidden');
+  }
+  setKind(rec ? rec.kind : (item ? 'review' : 'study'));
+  if (rec && rec.kind === 'review') $('recStep').value = String(rec.step || 1);
+  if (item) { setKind('review'); $('recStep').value = String(item.step); $('recUnit').value = item.unitId; }
+
+  $('recMinutes').value = rec && typeof rec.minutes === 'number' ? rec.minutes : '';
+  $('recPage').value = rec ? (rec.pages || '') : '';
+  $('recQuestions').value = rec && typeof rec.questions === 'number' ? rec.questions : '';
+  $('recCorrect').value = rec && typeof rec.correct === 'number' ? rec.correct : '';
+  $('recHard').value = rec ? (rec.hard || '') : '';
+  $('recTodo').value = rec ? (rec.todo || '') : '';
+  setUnderstanding(rec && typeof rec.understanding === 'number' ? rec.understanding : 0);
+  updateAcc();
+
+  form.id = rec ? rec.id : null;
+  if (item) form.reviewItem = item;
+  if (rec) form.reviewItem = rec.kind === 'review' ? { unitId: rec.unitId, step: rec.step } : null;
+
+  $('sheetWrap').classList.remove('hidden');
+  var sheetEl = document.querySelector('.sheet');
+  if (sheetEl) sheetEl.scrollTop = 0;
+}
+function closeSheet(){ $('sheetWrap').classList.add('hidden'); }
+
+function saveRecord(){
+  var date = $('recDate').value;
+  if (!isValidISO(date)) { toast('날짜를 확인해 줘'); return; }
+  var subject = $('recSubject').value;
+  var unitVal = $('recUnit').value;
+  var custom = unitVal === '__custom';
+  var customText = $('recUnitCustom').value.trim();
+  if (custom && !customText) { toast('단원을 직접 입력해 줘'); return; }
+  var unitId = custom ? ('custom:' + subject + ':' + Date.now()) : unitVal;
+  var kind = form.kind;
+  var step = kind === 'review' ? Number($('recStep').value) : null;
+
+  var minutesRaw = $('recMinutes').value.trim();
+  var minutes = minutesRaw === '' ? null : Math.max(0, Math.round(Number(minutesRaw)));
+  if (minutes !== null && isNaN(minutes)) minutes = null;
+
+  var qRaw = $('recQuestions').value.trim(), cRaw = $('recCorrect').value.trim();
+  var questions = qRaw === '' ? null : Math.max(0, Math.round(Number(qRaw)));
+  var correct = cRaw === '' ? null : Math.max(0, Math.round(Number(cRaw)));
+  if (questions !== null && correct !== null) correct = Math.min(correct, questions);
+
+  var st = loadState();
+  var existing = form.id ? st.records.filter(function(r){ return r.id === form.id; })[0] : null;
+  var rec = existing || { id: 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1000), createdAt: new Date().toISOString() };
+
+  rec.date = date;
+  rec.kind = kind;
+  rec.subject = subject;
+  rec.unitId = unitId;
+  rec.customUnit = custom ? customText : null;
+  rec.step = step;
+  rec.minutes = minutes;
+  rec.pages = $('recPage').value.trim();
+  rec.questions = questions;
+  rec.correct = correct;
+  rec.understanding = form.understanding > 0 ? form.understanding : null;
+  rec.hard = $('recHard').value.trim();
+  rec.todo = $('recTodo').value.trim();
+  rec.weakFlag = (form.understanding > 0 && form.understanding <= 2) ||
+                 (questions && correct !== null && questions >= 5 && (correct / questions) < 0.7) ? true : (existing ? existing.weakFlag : false);
+
+  if (!existing) st.records.push(rec);
+  saveState();
+  closeSheet();
+  renderToday(); renderRecord();
+  toast(existing ? '수정했어' : '기록 저장 완료 · 계획에 반영했어');
+}
+
+/* =========================================================
+   11. 이벤트
+   ========================================================= */
+function bind(){
+  Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function(b){
+    b.addEventListener('click', function(){ showTab(b.getAttribute('data-tab')); });
+  });
+
+  $('prevDay').addEventListener('click', function(){
+    viewDate = addDays(currentView(), -1);
+    if (viewDate === todayReal()) viewDate = null;
+    renderToday();
+  });
+  $('nextDay').addEventListener('click', function(){
+    viewDate = addDays(currentView(), 1);
+    if (viewDate === todayReal()) viewDate = null;
+    renderToday();
+  });
+
+  // 체크박스
+  $('taskList').addEventListener('click', function(e){
+    var cb = e.target.closest ? e.target.closest('.cb') : null;
+    var task = e.target.closest ? e.target.closest('.task') : null;
+    if (!task) return;
+    if (cb || e.target === task) {
+      var id = task.getAttribute('data-id');
+      var dateStr = currentView();
+      var checks = checksFor(dateStr);
+      checks[id] = !checks[id];
+      saveState();
+      task.setAttribute('data-checked', checks[id] ? '1' : '0');
+      var box = task.querySelector('.cb');
+      if (box) box.setAttribute('aria-checked', checks[id] ? 'true' : 'false');
+      e.preventDefault();
+    }
+  });
+
+  // 개념 카드
+  $('conceptList').addEventListener('click', function(e){
+    var c = e.target.closest ? e.target.closest('.concept') : null;
+    if (!c) return;
+    c.setAttribute('data-open', c.getAttribute('data-open') === '1' ? '0' : '1');
+  });
+
+  // 밀린 과제 → 오늘로
+  $('carryList').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-carry]') : null;
+    if (!b) return;
+    var carry = $('carryCard')._carry || [];
+    var it = carry[Number(b.getAttribute('data-carry'))];
+    if (!it) return;
+    var p = planFor(currentView());
+    if (it.task.minutes > p.remaining) {
+      toast('오늘 남은 시간(' + p.remaining + '분)이 모자라. 다음 주말로 넘길게');
+      return;
+    }
+    var st = loadState();
+    var day = currentView();
+    st.carry[day] = (st.carry[day] || []).concat([{
+      id: it.task.id, kind: it.task.kind, subject: it.task.subject, unitId: it.task.unitId,
+      step: it.task.step || null, label: it.task.label, minutes: it.task.minutes,
+      title: it.task.title, detail: it.task.detail
+    }]);
+    saveState();
+    renderToday();
+    toast('오늘 계획에 넣었어');
+  });
+
+  // 브리핑
+  $('toggleBrief').addEventListener('click', function(){
+    var p = $('briefPreview');
+    var hidden = p.classList.toggle('hidden');
+    $('toggleBrief').textContent = hidden ? '내용 보기' : '접기';
+  });
+  $('copyBrief').addEventListener('click', function(){ copyText($('briefPreview')._text || briefingText(currentView())); });
+  $('copyWeekly').addEventListener('click', function(){ copyText(weeklyText(currentView())); });
+  $('toggleWeekly').addEventListener('click', function(){
+    var p = $('weeklyPreview');
+    var hidden = p.classList.toggle('hidden');
+    $('toggleWeekly').textContent = hidden ? '내용 보기' : '접기';
+  });
+
+  // 복습 완료 기록
+  $('revList').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-rev]') : null;
+    if (!b) return;
+    var id = b.getAttribute('data-rev');
+    var parts = id.split(':');
+    var item = reviewItems(currentView()).filter(function(i){ return i.id === id; })[0];
+    if (!item) return;
+    openSheet({ item: item });
+  });
+
+  // 기록 추가/수정
+  $('openAdd').addEventListener('click', function(){
+    var p = planFor(todayReal());
+    var t = p.tasks[0];
+    openSheet({ date: todayReal(), record: null });
+    if (t && !t.id.startsWith('rev')) {
+      form.subject = t.subject;
+      $('recSubject').value = t.subject;
+      fillUnitSelect();
+      $('recUnit').value = t.unitId;
+    }
+  });
+  $('recList').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-edit]') : null;
+    if (!b) return;
+    var id = b.getAttribute('data-edit');
+    var rec = loadState().records.filter(function(r){ return r.id === id; })[0];
+    if (rec) openSheet({ record: rec });
+  });
+
+  $('kindSeg').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-kind]') : null;
+    if (b) setKind(b.getAttribute('data-kind'));
+  });
+  $('undSeg').addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('[data-u]') : null;
+    if (b) setUnderstanding(b.getAttribute('data-u'));
+  });
+  $('recSubject').addEventListener('change', function(){
+    form.subject = $('recSubject').value;
+    $('recUnit').value = '';
+    fillUnitSelect();
+    $('recUnitCustom').classList.add('hidden');
+    form.custom = false;
+    $('toggleCustomUnit').textContent = '단원 직접 입력으로 바꾸기';
+  });
+  $('recUnit').addEventListener('change', function(){
+    var v = $('recUnit').value === '__custom';
+    form.custom = v;
+    $('recUnitCustom').classList.toggle('hidden', !v);
+    $('toggleCustomUnit').textContent = v ? '목록에서 고르기' : '단원 직접 입력으로 바꾸기';
+    if (v) setTimeout(function(){ $('recUnitCustom').focus(); }, 60);
+  });
+  $('toggleCustomUnit').addEventListener('click', function(){
+    var v = !form.custom;
+    form.custom = v;
+    $('recUnitCustom').classList.toggle('hidden', !v);
+    if (v) $('recUnit').value = '__custom';
+    else fillUnitSelect();
+    $('toggleCustomUnit').textContent = v ? '목록에서 고르기' : '단원 직접 입력으로 바꾸기';
+  });
+  $('recQuestions').addEventListener('input', updateAcc);
+  $('recCorrect').addEventListener('input', updateAcc);
+  $('cancelRec').addEventListener('click', closeSheet);
+  $('sheetScrim').addEventListener('click', closeSheet);
+  $('saveRec').addEventListener('click', saveRecord);
+  var delArmed = false, delTimer = null;
+  $('deleteRec').addEventListener('click', function(){
+    if (!form.id) return;
+    if (!delArmed) {
+      delArmed = true;
+      $('deleteRec').textContent = '한 번 더 누르면 지워져';
+      clearTimeout(delTimer);
+      delTimer = setTimeout(function(){ delArmed = false; $('deleteRec').textContent = '이 기록 삭제'; }, 4000);
+      return;
+    }
+    delArmed = false;
+    clearTimeout(delTimer);
+    $('deleteRec').textContent = '이 기록 삭제';
+    var st = loadState();
+    st.records = st.records.filter(function(r){ return r.id !== form.id; });
+    saveState();
+    closeSheet();
+    renderToday(); renderRecord();
+    toast('기록을 지웠어');
+  });
+
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closeSheet();
+  });
+}
+
+function copyText(txt){
+  var done = function(){ toast('복사했어'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done, function(){ fallbackCopy(txt, done); });
+  } else {
+    fallbackCopy(txt, done);
+  }
+}
+function fallbackCopy(txt, done){
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = txt;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    done();
+  } catch (e) { toast('복사가 안 돼. 내용 보기로 열어서 길게 눌러 복사해 줘'); }
+}
+
+/* =========================================================
+   12. 시작
+   ========================================================= */
+function boot(){
+  fillSubjectSelect();
+  fillUnitSelect();
+  bind();
+  renderToday();
+  renderRecord();
+  showTab('today');
+}
+
+// 테스트/디버그용 (읽기 전용)
+window.PlannerCore = {
+  CFG: CFG, SUBJECTS: SUBJECTS, UNITS: UNITS,
+  todayReal: todayReal, dayNumber: dayNumber, ddayFrom: ddayFrom,
+  planFor: planFor, reviewItems: reviewItems, reviewDoneRate: reviewDoneRate,
+  minutesOn: minutesOn, weekMinutesUsed: weekMinutesUsed,
+  briefingText: briefingText, weeklyText: weeklyText,
+  accuracy: accuracy, doneUnits: doneUnits, unitById: unitById,
+  firstStudyMap: firstStudyMap, weakUnits: weakUnits, weakSubjects: weakSubjects,
+  loadState: loadState, saveState: saveState, saveRecord: saveRecord,
+  renderToday: renderToday, setViewDate: function(d){ viewDate = d; },
+  accuracyOf: accuracy
+};
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+else boot();
+})();
+</script>
+</body>
+</html>
