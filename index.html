@@ -115,7 +115,10 @@
     display:flex; gap:10px; padding:12px 10px; border-radius:16px;
     background:#FBFAF5; border:1px solid rgba(126,155,128,.10); margin-bottom:8px;
     transition:background .18s ease, transform .14s ease;
+    cursor:pointer; -webkit-user-select:none; user-select:none;
   }
+  .task:focus-visible{ outline:2px solid rgba(126,155,128,.55); outline-offset:2px; }
+  .task[data-locked="1"]{ cursor:default; }
   .task:last-child{ margin-bottom:0; }
   .task:active{ transform:scale(.995); }
   .task[data-checked="1"]{ background:#F3F6EE; }
@@ -958,10 +961,14 @@ function recordsOn(dateStr){
 function minutesOn(dateStr){
   return recordsOn(dateStr).reduce(function(a, r){ return a + (Number(r.minutes) || 0); }, 0);
 }
-function firstStudyMap(){
+// asOf = 그 날짜를 시작할 때의 상태(그날 기록은 빼고 본다).
+// 계획은 이 기준으로만 만들기 때문에 그날 체크·기록을 해도 과제 목록이 흔들리지 않고,
+// 게이지·진도·복습만 실시간으로 올라간다.
+function firstStudyMap(asOf){
   var map = {};
   loadState().records.forEach(function(r){
     if (r.kind !== 'study') return;
+    if (asOf && !(r.date < asOf)) return;
     if (!map[r.unitId] || r.date < map[r.unitId]) map[r.unitId] = r.date;
   });
   return map;
@@ -969,9 +976,10 @@ function firstStudyMap(){
 function unitStudies(unitId){
   return loadState().records.filter(function(r){ return r.kind === 'study' && r.unitId === unitId; });
 }
-function unitWeak(unitId){
+function unitWeak(unitId, asOf){
   return loadState().records.some(function(r){
     if (r.unitId !== unitId) return false;
+    if (asOf && !(r.date < asOf)) return false;
     if (r.weakFlag) return true;
     if (typeof r.understanding === 'number' && r.understanding > 0 && r.understanding <= 2) return true;
     if (typeof r.questions === 'number' && r.questions >= 5 && typeof r.correct === 'number') {
@@ -980,21 +988,21 @@ function unitWeak(unitId){
     return false;
   });
 }
-function weakUnits(){
+function weakUnits(asOf){
   var seen = {}, out = [];
-  var first = firstStudyMap();
+  var first = firstStudyMap(asOf);
   Object.keys(first).forEach(function(uid){
-    if (unitWeak(uid)) { seen[uid] = 1; out.push(uid); }
+    if (unitWeak(uid, asOf)) { seen[uid] = 1; out.push(uid); }
   });
   return out;
 }
-function weakSubjects(){
+function weakSubjects(asOf){
   var s = {};
-  weakUnits().forEach(function(uid){ var u = unitById(uid); if (u) s[u.subject] = 1; });
+  weakUnits(asOf).forEach(function(uid){ var u = unitById(uid); if (u) s[u.subject] = 1; });
   return s;
 }
-function doneUnits(subjectId){
-  var first = firstStudyMap(), n = 0;
+function doneUnits(subjectId, asOf){
+  var first = firstStudyMap(asOf), n = 0;
   Object.keys(first).forEach(function(uid){
     var u = unitById(uid);
     if (u && (!subjectId || u.subject === subjectId)) n++;
@@ -1003,9 +1011,13 @@ function doneUnits(subjectId){
 }
 
 /* ---------- 간격복습 ---------- */
-function reviewItems(uptoDate){
-  var first = firstStudyMap();
-  var recs = loadState().records.filter(function(r){ return r.kind === 'review'; });
+function reviewItems(uptoDate, asOf){
+  var first = firstStudyMap(asOf);
+  var recs = loadState().records.filter(function(r){
+    if (r.kind !== 'review') return false;
+    if (asOf && !(r.date < asOf)) return false;
+    return true;
+  });
   var out = [];
   Object.keys(first).forEach(function(uid){
     var u = unitById(uid);
@@ -1022,7 +1034,7 @@ function reviewItems(uptoDate){
       else status = 'soon';
       out.push({
         unitId: uid, subject: u.subject, label: u.label, step: step, base: base,
-        due: due, done: done, status: status, weak: unitWeak(uid),
+        due: due, done: done, status: status, weak: unitWeak(uid, asOf),
         id: 'rev:' + uid + ':' + step
       });
     });
@@ -1055,8 +1067,8 @@ function weekMinutesUsed(dateStr){
   for (var i = 0; i < 7; i++) total += minutesOn(addDays(ws, i));
   return total;
 }
-function nextUnitFor(subjectId, exclude){
-  var first = firstStudyMap();
+function nextUnitFor(subjectId, exclude, asOf){
+  var first = firstStudyMap(asOf);
   var list = SUBJ_MAP[subjectId].units;
   for (var i = 0; i < list.length; i++) {
     var u = list[i];
@@ -1099,9 +1111,13 @@ function planFor(dateStr){
       preview: planFor(CFG.start)
     };
   }
+  // 계획은 '그날 시작 시점'의 기록으로만 짠다(asOf = dateStr).
+  // 그래야 홈에서 체크해 오늘 기록이 쌓여도 과제 목록·단원 배정이 흔들리지 않고,
+  // 게이지·진도·복습·기록만 그대로 반영된다.
+  var asOf = dateStr;
   var limit = Math.min(dayLimit(dateStr), Math.max(0, CFG.weekLimit - weekMinutesUsed(dateStr) + minutesOn(dateStr)));
   var used = minutesOn(dateStr);
-  var budget = Math.max(0, limit - used);
+  var budget = Math.max(0, limit);
   var tasks = [], deferred = [];
 
   function add(task){
@@ -1110,7 +1126,7 @@ function planFor(dateStr){
     return false;
   }
 
-  var items = reviewItems(dateStr);
+  var items = reviewItems(dateStr, asOf);
   var todays = items.filter(function(i){ return i.status === 'today'; });
   var lates = items.filter(function(i){ return i.status === 'late'; })
                    .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
@@ -1153,10 +1169,10 @@ function planFor(dateStr){
   for (var round = 0; round < ROUNDS; round++) {
     for (var ai = 0; ai < alloc.length; ai++) {
       var sid = alloc[ai];
-      var u = nextUnitFor(sid, assigned);
+      var u = nextUnitFor(sid, assigned, asOf);
       if (!u) continue;
       assigned[u.id] = 1;
-      var head = (round === 0 && doneUnits(sid) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
+      var head = (round === 0 && doneUnits(sid, asOf) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
       add({ id: 'new:' + u.id + '@' + dateStr, type: 'new', kind: 'study',
             subject: sid, unitId: u.id, label: u.label,
             minutes: CFG.unitMin[sid],
@@ -1166,7 +1182,7 @@ function planFor(dateStr){
   }
 
   // 취약 보충
-  var weak = weakUnits().filter(function(uid){
+  var weak = weakUnits(asOf).filter(function(uid){
     var today = recordsOn(dateStr).some(function(r){ return r.unitId === uid; });
     return !today;
   });
@@ -1180,12 +1196,161 @@ function planFor(dateStr){
           badge: '취약' });
   });
 
-  var total = tasks.reduce(function(a, t){ return a + t.minutes; }, 0);
+  // 오늘 이미 한 것(체크·기록)은 목록에서 빼지 않고 체크된 상태로 남긴다
+  tasks.forEach(function(t){ t.done = taskDone(t, dateStr); });
+  // 계획에 없던 단원을 그날 기록했다면 목록 끝에 '기록' 줄로도 보여 준다
+  recordsOn(dateStr).forEach(function(r){
+    var covered = tasks.some(function(t){ return recordMatchesTask(r, t); });
+    if (covered) return;
+    tasks.push(recordRow(r));
+  });
+  // 이미 한 단원은 '오늘 시간 밖' 목록에서도 빠진다
+  deferred = deferred.filter(function(t){
+    return !recordsOn(dateStr).some(function(r){ return recordMatchesTask(r, t); });
+  });
+
+  var total = tasks.reduce(function(a, t){ return a + (t.type === 'record' ? 0 : t.minutes); }, 0);
+  var open = tasks.reduce(function(a, t){ return a + (t.type === 'record' || t.done ? 0 : t.minutes); }, 0);
   return {
     date: dateStr, day: dayNumber(dateStr), limit: limit, used: used,
-    remaining: Math.max(0, limit - used), total: total, tasks: tasks,
+    remaining: Math.max(0, limit - used), total: total, open: open, tasks: tasks,
     deferred: deferred, subjects: names, weak: weak
   };
+}
+
+/* ---------- 체크 ↔ 기록 연결 ---------- */
+// 같은 날 같은 단원·같은 구분(복습이면 단계까지)이면 같은 과제로 본다
+function recordMatchesTask(r, t){
+  if (!t || !t.unitId || !r || !r.unitId) return false;
+  if (r.unitId !== t.unitId) return false;
+  var tRev = t.kind === 'review', rRev = r.kind === 'review';
+  if (tRev !== rRev) return false;
+  if (tRev && Number(r.step || 1) !== Number(t.step || 1)) return false;
+  return true;
+}
+function taskDone(t, dateStr){
+  if (!t) return false;
+  var checks = loadState().checks[dateStr] || {};
+  if (checks[t.id]) return true;
+  return recordsOn(dateStr).some(function(r){ return recordMatchesTask(r, t); });
+}
+// 기록으로만 있는 일(계획에 없던 단원)을 목록에 보여 줄 때 쓰는 줄
+function recordRow(r){
+  var u = unitById(r.unitId);
+  var rev = r.kind === 'review';
+  return {
+    id: 'rec:' + r.id, type: 'record', kind: rev ? 'review' : 'study',
+    subject: r.subject, unitId: r.unitId, step: r.step || null,
+    label: r.customUnit || (u ? u.label : '단원'),
+    minutes: Number(r.minutes) || 0, recordId: r.id, done: true, locked: true,
+    title: (rev ? '기록한 복습 · ' : '기록한 진도 · ') + (r.customUnit || (u ? u.secTitle : '단원')),
+    detail: '기록 탭에 남긴 기록이야. 고치려면 기록 탭에서 수정해 줘.', badge: '기록'
+  };
+}
+// 홈 체크 하나로 기록까지 바로 반영 (체크 해제하면 그 체크로 생긴 기록만 지운다)
+function toggleTask(id, dateStr){
+  if (dateStr > todayReal()) {
+    toast('아직 오지 않은 날이야. 그날 다시 체크해 줘');
+    return;
+  }
+  var p = planFor(dateStr);
+  var t = null;
+  p.tasks.forEach(function(x){ if (x.id === id) t = x; });
+  if (!t) return;
+  var st = loadState();
+  if (!st.checks[dateStr]) st.checks[dateStr] = {};
+  var checks = st.checks[dateStr];
+
+  if (taskDone(t, dateStr)) {
+    var owned = st.records.filter(function(r){ return r.taskId === id && r.date === dateStr; });
+    if (!owned.length) {
+      toast('이 단원은 기록 탭에 이미 기록돼 있어. 고치려면 기록 탭에서 해 줘');
+      return;
+    }
+    var back = owned.reduce(function(a, r){ return a + (Number(r.minutes) || 0); }, 0);
+    st.records = st.records.filter(function(r){ return !(r.taskId === id && r.date === dateStr); });
+    delete checks[id];
+    saveState();
+    renderAll();
+    toast('체크를 풀었어' + (back ? ' · ' + back + '분 뺌' : ''));
+    return;
+  }
+
+  checks[id] = true;
+  // 같은 날 같은 단원을 모달로 이미 기록했으면 두 번 세지 않는다
+  var dup = st.records.some(function(r){ return r.date === dateStr && recordMatchesTask(r, t); });
+  if (!dup) {
+    st.records.push({
+      id: 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      createdAt: new Date().toISOString(),
+      date: dateStr,
+      kind: t.kind === 'review' ? 'review' : 'study',
+      subject: t.subject, unitId: t.unitId, step: t.step || null,
+      customUnit: null, minutes: Number(t.minutes) || null,
+      pages: '', questions: null, correct: null, understanding: null,
+      hard: '', todo: '', weakFlag: false, taskId: id, fromCheck: true
+    });
+  }
+  saveState();
+  renderAll();
+  toast((dup ? '이미 기록에 있어' : t.minutes + '분 반영') + ' · ' + (t.kind === 'review' ? '복습' : '진도') + ' 완료');
+}
+// 예전 버전에서 checks만 켜져 있던 데이터를 기록으로 옮겨 준다(한 번만)
+function migrateChecks(){
+  var st = loadState();
+  if (st.checksMigrated) return;
+  var added = 0;
+  Object.keys(st.checks || {}).forEach(function(d){
+    if (!isValidISO(d) || d < CFG.start) return;
+    var c = st.checks[d] || {};
+    Object.keys(c).forEach(function(id){
+      if (!c[id]) return;
+      var t = taskFromId(id, d);
+      if (!t) return;
+      var already = st.records.some(function(r){ return r.date === d && recordMatchesTask(r, t); });
+      if (already) return;
+      st.records.push({
+        id: 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        createdAt: new Date().toISOString(), date: d,
+        kind: t.kind === 'review' ? 'review' : 'study',
+        subject: t.subject, unitId: t.unitId, step: t.step || null,
+        customUnit: null, minutes: Number(t.minutes) || null,
+        pages: '', questions: null, correct: null, understanding: null,
+        hard: '', todo: '', weakFlag: false, taskId: id, fromCheck: true
+      });
+      added++;
+    });
+  });
+  st.checksMigrated = true;
+  if (added) saveState();
+}
+// 체크 id에서 과제 정보를 되살린다 (예전 체크만 있던 데이터용)
+function taskFromId(id, dateStr){
+  var m = /^rev:([^:]+):(\d+):(\d{4}-\d{2}-\d{2})$/.exec(id);
+  if (m) {
+    var ru = unitById(m[1]);
+    if (!ru) return null;
+    return { id: id, kind: 'review', subject: ru.subject, unitId: ru.id,
+             step: Number(m[2]), minutes: CFG.reviewMin[Number(m[2])] || 7, label: ru.label };
+  }
+  m = /^new:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(id) || null;
+  if (m) {
+    var nu = unitById(m[1]);
+    if (!nu) return null;
+    return { id: id, kind: 'study', subject: nu.subject, unitId: nu.id,
+             step: null, minutes: CFG.unitMin[nu.subject], label: nu.label };
+  }
+  m = /^weak:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(id);
+  if (m) {
+    var wu = unitById(m[1]);
+    if (!wu) return null;
+    return { id: id, kind: 'study', subject: wu.subject, unitId: wu.id,
+             step: null, minutes: CFG.weakMin, label: wu.label };
+  }
+  if (/^rec:/.test(id)) return null;
+  // 재배치(carry)는 원래 과제 id를 그대로 쓰므로 다시 풀어 본다
+  if (/^carry:/.test(id)) return taskFromId(id.slice(6), dateStr);
+  return null;
 }
 
 /* =========================================================
@@ -1236,7 +1401,7 @@ function briefingText(dateStr){
   L.push('- 정답률 70% 미만이거나 이해도 2점 이하 → 다음 계획에서 신규 진도 줄이고 보충');
   L.push('');
   L.push('[체크리스트]');
-  p.tasks.forEach(function(t){ L.push('- [ ] ' + t.title + ' (' + t.minutes + '분)'); });
+  p.tasks.forEach(function(t){ L.push('- [' + (t.done ? 'x' : ' ') + '] ' + t.title + ' (' + t.minutes + '분)'); });
   if (p.deferred.length) {
     L.push('');
     L.push('[오늘 시간 밖 → 후속 일정]');
@@ -1323,9 +1488,11 @@ function toast(msg){
   el._t = setTimeout(function(){ el.classList.remove('show'); }, 2200);
 }
 function checksFor(dateStr){
-  var st = loadState();
-  if (!st.checks[dateStr]) st.checks[dateStr] = {};
-  return st.checks[dateStr];
+  return loadState().checks[dateStr] || {};
+}
+function renderAll(){
+  renderToday();
+  renderRecord();
 }
 
 function renderPreStart(dateStr, p, isReal){
@@ -1438,36 +1605,41 @@ function renderToday(){
   var gnote;
   if (p.used > p.limit) gnote = '실제로 한 시간이 계획보다 많았어. 기록은 그대로 두고, 남은 하루는 쉬어도 괜찮아.';
   else if (!p.tasks.length) gnote = '오늘은 배정된 과제가 없어. 쉬어 가도 되는 날이야.';
-  else if (p.total > p.remaining) gnote = '이미 ' + p.used + '분 했으니 계획 중 ' + (p.total - p.remaining) + '분은 다음 일정으로 넘길게.';
-  else if (p.remaining - p.total === 0) gnote = '계획 ' + p.total + '분으로 오늘 한도를 딱 맞게 채웠어.';
-  else gnote = '계획 ' + p.total + '분 · 남은 시간 ' + (p.remaining - p.total) + '분은 비워 뒀어.';
+  else if (!p.open) gnote = '오늘 계획은 다 끝났어. 체크를 풀면 다시 되돌릴 수 있어.';
+  else if (p.open > p.remaining) gnote = '남은 시간이 ' + p.remaining + '분이라 계획 중 ' + (p.open - p.remaining) + '분은 다음 일정으로 넘길게.';
+  else if (p.remaining - p.open === 0) gnote = '계획 ' + p.open + '분으로 오늘 남은 시간을 딱 맞게 채웠어.';
+  else gnote = '남은 과제 ' + p.open + '분 · 그 밖에 ' + (p.remaining - p.open) + '분은 비워 뒀어.';
   $('gaugeNote').textContent = gnote;
 
-  // 과제
-  var checks = checksFor(dateStr);
+  // 과제 — 카드 전체를 탭하면 체크/해제(미리보기 제외)
   var html = '';
   if (!p.tasks.length) {
     html = '<p class="empty">오늘 배정된 과제가 없어. 대신 지난 복습을 하나 골라 가볍게 돌아봐도 좋아.</p>';
   }
   p.tasks.forEach(function(t){
-    var on = checks[t.id] ? 1 : 0;
-    var s = SUBJ_MAP[t.subject];
+    var on = taskDone(t, dateStr) ? 1 : 0;
+    var s = SUBJ_MAP[t.subject] || { short: '기타', tag: 'korean' };
     var steps = '';
     if (t.type === 'review') {
       steps = '<p class="steps-line"><b>①</b>책 덮고 회상 <b>②</b>주요 용어·학자 <b>③</b>차이 비교 <b>④</b>문제풀이 <b>⑤</b>오답 분석</p>';
     }
-    html += '<label class="task" data-id="' + esc(t.id) + '" data-checked="' + on + '">'
-      + '<span class="cb" role="checkbox" aria-checked="' + (on ? 'true' : 'false') + '" tabindex="0"></span>'
+    var badge = t.badge
+      ? '<span class="badge ' + (t.badge === '취약' ? 'b-weak' : (t.badge === '기록' ? 'b-done' : 'b-late')) + '">' + esc(t.badge) + '</span>'
+      : '';
+    html += '<div class="task" data-id="' + esc(t.id) + '" data-checked="' + on + '"'
+      + (t.locked ? ' data-locked="1"' : '') + ' role="checkbox" tabindex="0" aria-checked="' + (on ? 'true' : 'false') + '"'
+      + ' aria-label="' + esc(t.title) + ' ' + t.minutes + '분">'
+      + '<span class="cb" aria-hidden="true"></span>'
       + '<div class="task-body"><div class="task-top">'
       + '<span class="tag t-' + s.tag + '">' + esc(s.short) + '</span>'
-      + (t.badge ? '<span class="badge ' + (t.badge === '취약' ? 'b-weak' : 'b-late') + '">' + esc(t.badge) + '</span>' : '')
+      + badge
       + '<span class="min">' + t.minutes + '분</span>'
       + '</div><p class="task-title" style="margin:5px 0 0">' + esc(t.title) + '</p>'
-      + '<p class="task-detail">' + esc(t.detail) + '</p>' + steps + '</div></label>';
+      + '<p class="task-detail">' + esc(t.detail) + '</p>' + steps + '</div></div>';
   });
   $('taskList').innerHTML = html;
   $('taskTitle').textContent = '오늘 계획';
-  $('taskSum').textContent = p.total ? '· 합계 ' + p.total + '분 / ' + p.limit + '분' : '';
+  $('taskSum').textContent = p.total ? '· 계획 ' + p.total + '분 / ' + p.limit + '분' : '';
   if (p.deferred.length) {
     $('deferNote').classList.remove('hidden');
     $('deferNote').textContent = '시간이 넘쳐서 오늘 넣지 않은 것: '
@@ -1619,6 +1791,7 @@ function renderRecord(){
     }
     var s = SUBJ_MAP[r.subject] || { name: r.subject, tag: 'korean' };
     var bits = [];
+    if (r.fromCheck) bits.push('홈 체크');
     if (r.kind === 'review') bits.push('D+' + (r.step || 1) + ' 복습');
     if (typeof r.minutes === 'number' && r.minutes > 0) bits.push(r.minutes + '분');
     else bits.push('시간 미보고');
@@ -1852,6 +2025,10 @@ function saveRecord(){
 
   var st = loadState();
   var existing = form.id ? st.records.filter(function(r){ return r.id === form.id; })[0] : null;
+  var prevDate = existing ? existing.date : null;
+  var prevUnit = existing ? existing.unitId : null;
+  var prevKind = existing ? existing.kind : null;
+  var prevTask = existing ? existing.taskId : null;
   var rec = existing || { id: 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1000), createdAt: new Date().toISOString() };
 
   rec.date = date;
@@ -1871,10 +2048,17 @@ function saveRecord(){
                  (questions && correct !== null && questions >= 5 && (correct / questions) < 0.7) ? true : (existing ? existing.weakFlag : false);
 
   if (!existing) st.records.push(rec);
+  // 홈 체크로 만든 기록을 다른 날·다른 단원으로 옮기면 그 체크 표시도 같이 정리한다
+  if (prevTask && (prevDate !== rec.date || prevUnit !== rec.unitId || prevKind !== rec.kind)) {
+    var oc = st.checks[prevDate] || {};
+    delete oc[prevTask];
+    delete rec.taskId;
+    delete rec.fromCheck;
+  }
   saveState();
   closeSheet();
-  renderToday(); renderRecord();
-  toast(existing ? '수정했어' : '기록 저장 완료 · 계획에 반영했어');
+  renderAll();
+  toast(existing ? '수정했어' : '기록 저장 완료 · 계획에 반영됐어');
 }
 
 /* =========================================================
@@ -1896,24 +2080,24 @@ function bind(){
     renderToday();
   });
 
-  // 체크박스 — 미리 보기(시작 전) 목록은 체크하지 않는다
+  // 체크 — 작은 네모뿐 아니라 카드 전체를 탭해도 체크/해제된다. 미리 보기(시작 전)는 제외
   $('taskList').addEventListener('click', function(e){
-    var cb = e.target.closest ? e.target.closest('.cb') : null;
     var task = e.target.closest ? e.target.closest('.task') : null;
     if (!task) return;
     if (task.getAttribute('data-preview') === '1') return;
-    if (!task.getAttribute('data-id')) return;
-    if (cb || e.target === task) {
-      var id = task.getAttribute('data-id');
-      var dateStr = currentView();
-      var checks = checksFor(dateStr);
-      checks[id] = !checks[id];
-      saveState();
-      task.setAttribute('data-checked', checks[id] ? '1' : '0');
-      var box = task.querySelector('.cb');
-      if (box) box.setAttribute('aria-checked', checks[id] ? 'true' : 'false');
-      e.preventDefault();
-    }
+    var id = task.getAttribute('data-id');
+    if (!id) return;
+    e.preventDefault();
+    toggleTask(id, currentView());
+  });
+  $('taskList').addEventListener('keydown', function(e){
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    var task = e.target.closest ? e.target.closest('.task') : null;
+    if (!task || task.getAttribute('data-preview') === '1') return;
+    var id = task.getAttribute('data-id');
+    if (!id) return;
+    e.preventDefault();
+    toggleTask(id, currentView());
   });
 
   // 개념 카드
@@ -2042,10 +2226,16 @@ function bind(){
     clearTimeout(delTimer);
     $('deleteRec').textContent = '이 기록 삭제';
     var st = loadState();
+    var gone = st.records.filter(function(r){ return r.id === form.id; })[0];
     st.records = st.records.filter(function(r){ return r.id !== form.id; });
+    // 홈 체크로 만든 기록을 지우면 그 체크 표시도 같이 지운다
+    if (gone && gone.taskId) {
+      var gc = st.checks[gone.date] || {};
+      delete gc[gone.taskId];
+    }
     saveState();
     closeSheet();
-    renderToday(); renderRecord();
+    renderAll();
     toast('기록을 지웠어');
   });
 
@@ -2098,6 +2288,7 @@ function fallbackCopy(txt, done){
    12. 시작
    ========================================================= */
 function boot(){
+  migrateChecks();
   fillSubjectSelect();
   fillUnitSelect();
   bind();
@@ -2116,6 +2307,8 @@ window.PlannerCore = {
   accuracy: accuracy, doneUnits: doneUnits, unitById: unitById,
   firstStudyMap: firstStudyMap, weakUnits: weakUnits, weakSubjects: weakSubjects,
   loadState: loadState, saveState: saveState, saveRecord: saveRecord,
+  toggleTask: toggleTask, taskDone: taskDone, migrateChecks: migrateChecks,
+  renderAll: renderAll, recordsOn: recordsOn,
   blankState: blankState, resetState: resetState, beforeStart: beforeStart,
   ddayText: ddayText, startDate: function(){ return CFG.start; },
   renderToday: renderToday, setViewDate: function(d){ viewDate = d; },
