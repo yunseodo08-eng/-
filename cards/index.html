@@ -888,6 +888,7 @@
     var today = todayISO();
     var s = ensureSession(today);
     renderHero(today);
+    renderChips();
     var area = $('studyArea');
     var st = sessionStats();
     var pool = countPool(today, s.filter);
@@ -1017,11 +1018,26 @@
       var fb = $('flipBtn');
       if (fb) fb.textContent = shown ? '질문 다시 보기' : '답 보기';
       if (shown) wrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      setTimeout(ensureRatersVisible, 120);
+      setTimeout(ensureRatersVisible, 360);
+      setTimeout(ensureRatersVisible, 700);
       measure();
       requestAnimationFrame(measure);
       setTimeout(measure, 60);
       setTimeout(measure, 360);
       save();
+    }
+
+    function ensureRatersVisible(){
+      var rr = $('raters');
+      if (!rr) return;
+      var bar = document.querySelector('.tabbar');
+      var limit = (bar ? bar.getBoundingClientRect().top : window.innerHeight) - 10;
+      var rect = rr.getBoundingClientRect();
+      if (rect.bottom <= limit) return;
+      var allowed = Math.max(0, wrap.getBoundingClientRect().top - 8);
+      var delta = Math.min(rect.bottom - limit, allowed);
+      if (delta > 0) window.scrollBy({ top: delta, behavior: 'smooth' });
     }
 
     wrap.addEventListener('click', flip);
