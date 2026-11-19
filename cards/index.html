@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBF7F0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="복습 카드">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23FBF7F0'/%3E%3Crect x='16' y='18' width='24' height='32' rx='4' fill='%23C9DBBE'/%3E%3Crect x='26' y='14' width='24' height='32' rx='4' fill='%23AEC6CC'/%3E%3C/svg%3E">
+<title>복습 카드</title>
+<style>
+  :root{
+    --cream:#FBF7F0;
+    --card:#FFFDF9;
+    --sage:#7E9B80;
+    --sage-deep:#5A7660;
+    --sage-soft:#E6EFE2;
+    --blue:#8FA8C0;
+    --blue-soft:#E9F0F5;
+    --sand:#C7A98B;
+    --sand-soft:#F5EDE2;
+    --lav:#A795B8;
+    --lav-soft:#EFEAF4;
+    --clay:#C08E86;
+    --clay-soft:#F7EAE7;
+    --ink:#37403A;
+    --ink-soft:#5F6B62;
+    --muted:#96A093;
+    --line:rgba(126,155,128,.14);
+    --shadow:0 10px 26px rgba(96,112,90,.08);
+    --shadow-soft:0 4px 14px rgba(96,112,90,.06);
+    --r:22px;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(120% 55% at 100% 0%, #F7F2E6 0%, rgba(247,242,230,0) 62%),
+      radial-gradient(90% 45% at 0% 8%, #EAF1E7 0%, rgba(234,241,231,0) 58%),
+      linear-gradient(180deg, #FCFAF4 0%, #F8F5EC 45%, #F4F2EA 100%);
+    min-height:100vh; min-height:100dvh;
+    letter-spacing:-0.01em;
+    font-size:15px;
+  }
+  body.studying{ background:
+      radial-gradient(120% 55% at 100% 0%, #F7F2E6 0%, rgba(247,242,230,0) 62%),
+      radial-gradient(90% 45% at 0% 8%, #EAF1E7 0%, rgba(234,241,231,0) 58%),
+      linear-gradient(180deg, #FCFAF4 0%, #F8F5EC 45%, #F4F2EA 100%); }
+  .app{ max-width:430px; margin:0 auto; padding: calc(env(safe-area-inset-top) + 12px) 16px calc(96px + env(safe-area-inset-bottom)); }
+
+  /* ---------- top bar ---------- */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:4px 2px 14px; }
+  .brand{ display:flex; gap:9px; align-items:center; min-width:0; }
+  .brand .mark{ font-size:22px; line-height:1; }
+  .brand h1{ font-size:18px; margin:0; font-weight:800; letter-spacing:-0.03em; white-space:nowrap; }
+  .brand p{ margin:1px 0 0; font-size:11.5px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .plink{
+    flex:0 0 auto; font-size:12px; font-weight:800; color:var(--sage-deep); text-decoration:none;
+    background:rgba(230,239,226,.85); border:1px solid var(--line); border-radius:999px; padding:7px 12px;
+  }
+  .plink:active{ transform:scale(.97); }
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    box-shadow:var(--shadow); padding:16px; margin-bottom:12px;
+  }
+  .card h2{ font-size:17px; margin:0 0 4px; font-weight:800; letter-spacing:-0.03em; line-height:1.35; }
+  .card h3{ font-size:14.5px; margin:0 0 10px; font-weight:800; letter-spacing:-0.02em; display:flex; align-items:center; gap:6px; }
+  .eyebrow{ margin:0; font-size:11.5px; font-weight:700; color:var(--sage); letter-spacing:0.01em; }
+  .muted{ color:var(--muted); }
+  .small{ font-size:12px; line-height:1.55; }
+  .hidden{ display:none !important; }
+  .tab-panel{ animation:fadeIn .26s ease; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+
+  /* ---------- hero ---------- */
+  .hero{ padding:12px 14px 10px; }
+  .hero-date{ text-align:center; }
+  .hero-date h2{ font-size:16.5px; margin:2px 0 0; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:9px 0 0; }
+  .pill{
+    font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:999px;
+    background:#F6F3EB; color:var(--ink-soft); border:1px solid var(--line);
+    font-variant-numeric:tabular-nums;
+  }
+  .pill.sage{ background:var(--sage-soft); color:var(--sage-deep); border-color:transparent; }
+  .pill.amber{ background:var(--sand-soft); color:#8C6B47; border-color:transparent; }
+  .pill.rose{ background:var(--clay-soft); color:#9C5F55; border-color:transparent; }
+
+  .gauge{ margin-top:9px; }
+  .gauge-head{ display:flex; justify-content:space-between; align-items:baseline; font-size:12px; font-weight:700; color:var(--ink-soft); margin-bottom:6px; font-variant-numeric:tabular-nums; }
+  .gauge-head .left{ color:var(--sage-deep); }
+  .track{ height:10px; border-radius:999px; background:#EFEBE1; overflow:hidden; }
+  .track .fill{ height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,#9BB894,#7E9B80); transition:width .45s cubic-bezier(.2,.7,.3,1); }
+
+  /* ---------- chips ---------- */
+  .chips{ display:flex; gap:6px; overflow-x:auto; padding:2px 2px 10px; margin:0 -2px; scrollbar-width:none; }
+  .chips::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex:0 0 auto; font-family:inherit; font-size:12.5px; font-weight:800; padding:8px 13px; border-radius:999px;
+    border:1px solid var(--line); background:#FBF9F3; color:var(--ink-soft); cursor:pointer;
+    display:flex; align-items:center; gap:5px; transition:background .16s ease, color .16s ease;
+  }
+  .chip .n{ font-size:11px; font-weight:800; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .chip[aria-pressed="true"]{ background:var(--sage); border-color:transparent; color:#FFFDF8; }
+  .chip[aria-pressed="true"] .n{ color:rgba(255,253,248,.78); }
+  .chip:active{ transform:scale(.97); }
+
+  /* ---------- flip card ---------- */
+  .flipper{ perspective:1400px; margin-bottom:10px; transition:height .32s cubic-bezier(.2,.7,.3,1); position:relative; }
+  .flip-inner{
+    position:absolute; inset:0; transform-style:preserve-3d;
+    transition:transform .5s cubic-bezier(.2,.7,.3,1);
+  }
+  .flipper.flipped .flip-inner{ transform:rotateY(180deg); }
+  .face{
+    position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    box-shadow:var(--shadow); padding:16px 16px 14px; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .face.back{ transform:rotateY(180deg); background:linear-gradient(180deg,#FFFDF9 0%,#FBF8F1 100%); }
+  .badges{ display:flex; flex-wrap:wrap; gap:5px; margin-bottom:12px; }
+  .badge{ font-size:11px; font-weight:800; padding:4px 9px; border-radius:999px; background:#F1EEE6; color:var(--ink-soft); }
+  .badge.sage{ background:var(--sage-soft); color:var(--sage-deep); }
+  .badge.blue{ background:var(--blue-soft); color:#4F6C86; }
+  .badge.sand{ background:var(--sand-soft); color:#8C6B47; }
+  .badge.lav{ background:var(--lav-soft); color:#6C5C7D; }
+  .badge.clay{ background:var(--clay-soft); color:#9C5F55; }
+  .badge.mint{ background:#E3F0EC; color:#4F7A6C; }
+  .badge.new{ background:#FFF3D9; color:#96702F; }
+  .qtext{ margin:2px 0 0; font-size:15.5px; line-height:1.62; font-weight:700; letter-spacing:-0.02em; }
+  .atext{ margin:0 0 10px; font-size:14.5px; line-height:1.72; }
+  .atext b{ color:var(--sage-deep); font-weight:800; }
+  .memo{
+    margin-top:auto; display:flex; gap:7px; align-items:flex-start;
+    background:var(--sand-soft); border-radius:14px; padding:9px 11px; font-size:12.5px; line-height:1.55; color:#7C6144;
+  }
+  .memo .ic{ flex:0 0 auto; }
+  .tap-hint{ margin:auto 0 2px; text-align:center; font-size:12px; font-weight:700; color:var(--muted); }
+  .tap-hint .ic{ display:inline-block; animation:bob 1.8s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-3px);} }
+  .meta-line{ margin-top:10px; padding-top:9px; border-top:1px dashed rgba(126,155,128,.22); font-size:11.5px; color:var(--muted); display:flex; justify-content:space-between; gap:8px; }
+
+  /* ---------- raters ---------- */
+  .raters{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px; }
+  .rater{
+    font-family:inherit; border:1px solid var(--line); background:#FBF9F3; border-radius:16px;
+    padding:11px 2px 9px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:2px;
+    transition:transform .12s ease, opacity .2s ease;
+  }
+  .rater .lab{ font-size:12.5px; font-weight:800; }
+  .rater .iv{ font-size:10.5px; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .rater:active{ transform:scale(.96); }
+  .rater.r-again{ background:var(--clay-soft); border-color:transparent; color:#9C5F55; }
+  .rater.r-again .iv{ color:#B4847A; }
+  .rater.r-hard{ background:#FBEFE3; border-color:transparent; color:#966842; }
+  .rater.r-hard .iv{ color:#B08E6E; }
+  .rater.r-good{ background:var(--sage-soft); border-color:transparent; color:var(--sage-deep); }
+  .rater.r-good .iv{ color:#7F9A80; }
+  .rater.r-easy{ background:var(--blue-soft); border-color:transparent; color:#4F6C86; }
+  .rater.r-easy .iv{ color:#7D95AD; }
+  .raters.locked{ opacity:.42; pointer-events:none; }
+  .rater-note{ text-align:center; font-size:11.5px; color:var(--muted); margin:0 0 10px; min-height:16px; }
+  .under-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .ghost{
+    font-family:inherit; font-size:12px; font-weight:800; color:var(--ink-soft);
+    background:#F6F3EB; border:1px solid var(--line); border-radius:12px; padding:8px 12px; cursor:pointer;
+  }
+  .ghost:active{ transform:scale(.97); }
+
+  /* ---------- empty / celebrate ---------- */
+  .done-wrap{ text-align:center; padding:26px 18px 22px; }
+  .done-emoji{ font-size:40px; line-height:1; }
+  .done-wrap h2{ margin:12px 0 6px; font-size:19px; }
+  .done-wrap p{ margin:0; }
+  .stat-row{ display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin:14px 0 16px; }
+  .big-btn{
+    width:100%; font-family:inherit; font-size:14.5px; font-weight:800; color:#FFFDF8;
+    background:linear-gradient(180deg,#8CA98D,#748F76); border:0; border-radius:16px; padding:14px; cursor:pointer;
+    box-shadow:0 8px 18px rgba(96,112,90,.18);
+  }
+  .big-btn:active{ transform:scale(.99); }
+  .big-btn.sub{ background:#F4F1E8; color:var(--ink-soft); box-shadow:none; border:1px solid var(--line); margin-top:8px; }
+
+  /* ---------- deck ---------- */
+  .subj-grid{ display:flex; flex-direction:column; gap:7px; }
+  .subj-row{
+    display:flex; align-items:center; gap:9px; padding:10px 11px; border-radius:15px; background:#FBFAF5;
+    border:1px solid rgba(126,155,128,.10);
+  }
+  .subj-row .nm{ flex:1 1 auto; min-width:0; font-size:13px; font-weight:800; }
+  .subj-row .nm small{ display:block; font-size:10.5px; font-weight:700; color:var(--muted); }
+  .subj-row .num{ font-size:11.5px; font-weight:800; color:var(--ink-soft); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap; }
+  .subj-row .dot{ width:9px; height:9px; border-radius:50%; flex:0 0 auto; }
+  .deck-tools{ display:flex; gap:7px; margin-bottom:11px; }
+  .deck-tools input{
+    flex:1 1 auto; min-width:0; font-family:inherit; font-size:13.5px; color:var(--ink);
+    border:1px solid #E7E2D6; background:#FCFAF5; border-radius:13px; padding:10px 12px;
+  }
+  .deck-tools input::placeholder{ color:#B4BBAD; }
+  .deck-tools button{
+    flex:0 0 auto; font-family:inherit; font-size:12.5px; font-weight:800; color:#FFFDF8;
+    background:var(--sage); border:0; border-radius:13px; padding:0 14px; cursor:pointer;
+  }
+  .deck-tools button:active{ transform:scale(.97); }
+  .clist{ display:flex; flex-direction:column; gap:7px; }
+  .crow{ border:1px solid rgba(126,155,128,.12); border-radius:15px; background:#FBFAF5; padding:11px 11px 10px; }
+  .crow .top{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-bottom:6px; }
+  .crow .q{ font-size:13.5px; font-weight:750; line-height:1.45; margin:0 0 6px; }
+  .crow .a{ font-size:12px; line-height:1.5; color:var(--ink-soft); margin:0 0 8px;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .crow .foot{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .crow .due{ font-size:11px; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .crow .acts{ display:flex; gap:5px; }
+  .mini{
+    font-family:inherit; font-size:11px; font-weight:800; padding:5px 9px; border-radius:9px;
+    border:1px solid var(--line); background:#F6F3EB; color:var(--ink-soft); cursor:pointer;
+  }
+  .mini.danger{ color:#9C5F55; background:var(--clay-soft); border-color:transparent; }
+  .mini.danger.armed{ background:#C08E86; color:#FFFDF8; }
+  .mini:active{ transform:scale(.96); }
+  .list-empty{ text-align:center; font-size:12.5px; color:var(--muted); padding:16px 6px 8px; }
+
+  /* ---------- sheet ---------- */
+  .sheet-wrap{ position:fixed; inset:0; z-index:40; display:flex; align-items:flex-end; justify-content:center; background:rgba(52,62,52,.28); }
+  .sheet{
+    width:100%; max-width:430px; background:var(--cream); border-radius:24px 24px 0 0;
+    padding:16px 16px calc(20px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto;
+    animation:sheetUp .28s cubic-bezier(.2,.7,.3,1);
+    box-shadow:0 -8px 30px rgba(60,72,58,.16);
+  }
+  @keyframes sheetUp{ from{ transform:translateY(26px); opacity:.6;} to{ transform:none; opacity:1;} }
+  .sheet-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  .sheet-head h3{ margin:0; font-size:16px; }
+  .sheet label{ display:block; font-size:11.5px; font-weight:800; color:var(--ink-soft); margin:10px 2px 5px; }
+  .sheet select, .sheet input, .sheet textarea{
+    width:100%; font-family:inherit; font-size:14px; color:var(--ink);
+    border:1px solid #E7E2D6; background:#FFFDF9; border-radius:13px; padding:11px 12px;
+  }
+  .sheet textarea{ min-height:74px; resize:vertical; line-height:1.55; }
+  .sheet select:focus, .sheet input:focus, .sheet textarea:focus{
+    outline:none; border-color:rgba(126,155,128,.55); box-shadow:0 0 0 3px rgba(126,155,128,.13);
+  }
+  .sheet input::placeholder, .sheet textarea::placeholder{ color:#B4BBAD; }
+  .sheet select{ appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23809A7C' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 13px center; }
+  .sheet-actions{ margin-top:16px; display:flex; gap:8px; }
+  .sheet-actions button{ flex:1; font-family:inherit; font-size:14px; font-weight:800; border-radius:15px; padding:13px; cursor:pointer; border:0; }
+  .sheet-actions .primary{ background:linear-gradient(180deg,#8CA98D,#748F76); color:#FFFDF8; }
+  .sheet-actions .cancel{ background:#F1EEE5; color:var(--ink-soft); border:1px solid var(--line); }
+  .sheet .field-row{ display:flex; gap:8px; }
+
+  /* ---------- safety ---------- */
+  .safety-row{ display:flex; flex-direction:column; gap:8px; }
+  .safety-btn{
+    width:100%; text-align:left; font-family:inherit; font-size:13px; font-weight:800; color:var(--ink-soft);
+    background:#FBFAF5; border:1px solid rgba(126,155,128,.14); border-radius:14px; padding:12px 13px; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .safety-btn small{ display:block; font-size:10.5px; font-weight:700; color:var(--muted); margin-top:2px; }
+  .safety-btn.armed{ background:var(--clay-soft); border-color:transparent; color:#9C5F55; }
+  .safety-btn.armed small{ color:#A9756B; }
+
+  /* ---------- toast / tabbar ---------- */
+  #toast{
+    position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(10px);
+    background:rgba(58,68,58,.94); color:#FFFDF8; font-size:12.5px; font-weight:700;
+    padding:10px 16px; border-radius:14px; opacity:0; pointer-events:none; transition:opacity .24s ease, transform .24s ease;
+    z-index:60; max-width:88vw; text-align:center; line-height:1.4;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .tabbar{
+    position:fixed; left:50%; bottom:0; transform:translateX(-50%);
+    width:100%; max-width:430px; display:flex; gap:4px;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(252,250,245,.94); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    border-top:1px solid var(--line); z-index:20;
+  }
+  .tabbar button{
+    flex:1; border:0; background:transparent; border-radius:15px; padding:7px 2px 6px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; font-family:inherit;
+    font-size:10.5px; font-weight:750; color:var(--muted); cursor:pointer;
+    transition:background .18s ease, color .18s ease, transform .16s ease; position:relative;
+  }
+  .tabbar button .ic{ font-size:18px; line-height:1; filter:grayscale(.4); transition:filter .18s ease, transform .18s ease; }
+  .tabbar button[aria-selected="true"]{ background:var(--sage-soft); color:var(--sage-deep); }
+  .tabbar button[aria-selected="true"] .ic{ filter:none; transform:translateY(-1px); }
+  .tabbar button:active{ transform:scale(.97); }
+  .tabbar .dot{ position:absolute; top:6px; right:calc(50% - 18px); width:6px; height:6px; border-radius:50%; background:var(--clay); }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">🃏</span>
+      <div>
+        <h1>복습 카드</h1>
+        <p>오늘 볼 카드만 골라서</p>
+      </div>
+    </div>
+    <a class="plink" href="../" aria-label="학습 플래너로 돌아가기">📚 플래너</a>
+  </header>
+
+  <main>
+    <!-- ================== 학습 ================== -->
+    <section id="panel-study" class="tab-panel" aria-label="오늘의 복습">
+      <div class="card hero">
+        <div class="hero-date">
+          <p class="eyebrow" id="todayLine">2026년 11월 19일 목요일</p>
+          <h2 id="heroTitle">오늘의 복습</h2>
+        </div>
+        <div class="meta-row" id="heroPills"></div>
+        <div class="gauge">
+          <div class="gauge-head"><span id="progLeft">남은 0장</span><span class="left" id="progRight">완료 0장</span></div>
+          <div class="track" id="progTrack" role="progressbar" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+            <div class="fill" id="progFill"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chips" id="chips" role="group" aria-label="과목 필터"></div>
+      <div id="studyArea"></div>
+    </section>
+
+    <!-- ================== 덱 ================== -->
+    <section id="panel-deck" class="tab-panel hidden" aria-label="카드 목록과 관리">
+      <div class="card">
+        <h3>📊 과목별 현황</h3>
+        <div class="subj-grid" id="subjStats"></div>
+        <p class="small muted" style="margin:11px 2px 0;">마스터 = 다음 복습이 14일 이상인 카드</p>
+      </div>
+
+      <div class="card">
+        <h3>🗂 카드 목록</h3>
+        <div class="deck-tools">
+          <input id="search" type="search" placeholder="질문·답·단원 검색" aria-label="카드 검색">
+          <button id="addBtn" type="button">+ 카드 추가</button>
+        </div>
+        <div class="clist" id="cardList"></div>
+      </div>
+
+      <div class="card">
+        <h3>🛟 안전장치</h3>
+        <div class="safety-row">
+          <button class="safety-btn" id="restoreBtn" type="button">
+            <span>예시 카드 복원<small>내장 카드 18장 중 빠진 것만 다시 넣어요 (내 카드는 그대로)</small></span>
+            <span aria-hidden="true">↩︎</span>
+          </button>
+          <button class="safety-btn" id="resetBtn" type="button">
+            <span>전체 초기화<small>내 카드·복습 기록을 모두 지우고 처음 상태로</small></span>
+            <span aria-hidden="true">⚠️</span>
+          </button>
+        </div>
+        <p class="small muted" style="margin:12px 2px 0;">카드와 복습 기록은 이 기기 브라우저에만 저장돼요(localStorage <b>flashcardApp.v1</b>).</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar" role="tablist" aria-label="탭">
+  <button id="tab-study" role="tab" aria-selected="true" data-tab="study"><span class="ic">🎴</span>오늘 복습</button>
+  <button id="tab-deck" role="tab" aria-selected="false" data-tab="deck"><span class="ic">🗂</span>카드 관리</button>
+</nav>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<!-- 카드 추가/수정 시트 -->
+<div class="sheet-wrap hidden" id="sheetWrap" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h3 id="sheetTitle">카드 추가</h3>
+      <button class="mini" id="sheetClose" type="button">닫기</button>
+    </div>
+    <label for="fSub">과목</label>
+    <select id="fSub">
+      <option value="ethics">현대사회와 윤리</option>
+      <option value="sociology">사회학개론</option>
+      <option value="korean">국어</option>
+      <option value="english">영어</option>
+      <option value="history">한국사(한능검)</option>
+      <option value="custom">직접 추가</option>
+    </select>
+    <div id="customWrap" class="hidden">
+      <label for="fCustom">과목 이름</label>
+      <input id="fCustom" type="text" placeholder="예: 전공, 정보처리" maxlength="20">
+    </div>
+    <label for="fUnit">단원 (선택)</label>
+    <input id="fUnit" type="text" placeholder="예: 제1장 제1절 사회학의 창시자들" maxlength="60">
+    <label for="fFront">앞면 — 질문·키워드</label>
+    <textarea id="fFront" placeholder="예: 뒤르켐의 연구 대상과 대표 개념은?" maxlength="300"></textarea>
+    <label for="fBack">뒷면 — 핵심 답</label>
+    <textarea id="fBack" placeholder="예: 개인 밖에서 개인을 제약하는 사회적 사실 / 자살론·연대·아노미" maxlength="700"></textarea>
+    <label for="fMemo">메모·기억 팁 (선택)</label>
+    <textarea id="fMemo" placeholder="예: 이름은 콩트, 개념은 뒤르켐" maxlength="300"></textarea>
+    <div class="sheet-actions">
+      <button class="cancel" id="sheetCancel" type="button">취소</button>
+      <button class="primary" id="sheetSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =========================================================
+     1. 상수·유틸
+     ========================================================= */
+  var KEY = 'flashcardApp.v1';
+  var LADDER = [1, 3, 7, 14, 30, 60, 120];
+  var WD = ['일','월','화','수','목','금','토'];
+
+  var SUBJECTS = [
+    { key:'ethics',    label:'윤리',     full:'현대사회와 윤리', tone:'sage' },
+    { key:'sociology', label:'사회학',   full:'사회학개론',      tone:'blue' },
+    { key:'korean',    label:'국어',     full:'국어',            tone:'sand' },
+    { key:'english',   label:'영어',     full:'영어',            tone:'lav' },
+    { key:'history',   label:'한국사',   full:'한국사(한능검)',  tone:'clay' },
+    { key:'custom',    label:'직접 추가', full:'직접 추가',       tone:'mint' }
+  ];
+
+  function $(id){ return document.getElementById(id); }
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+  function isoOf(d){ return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate()); }
+  function parseISO(s){ var p = String(s).split('-'); return new Date(Number(p[0]), Number(p[1])-1, Number(p[2])); }
+  function todayISO(){
+    var p = null;
+    try { p = new URLSearchParams(location.search).get('date'); } catch(e){ p = null; }
+    if (p && /^\d{4}-\d{2}-\d{2}$/.test(p) && !isNaN(parseISO(p).getTime())) return p;
+    return isoOf(new Date());
+  }
+  function addDays(iso, n){
+    var d = parseISO(iso); d.setDate(d.getDate() + n); return isoOf(d);
+  }
+  function diffDays(a, b){
+    var da = parseISO(a), db = parseISO(b);
+    return Math.round((Date.UTC(db.getFullYear(), db.getMonth(), db.getDate()) -
+                       Date.UTC(da.getFullYear(), da.getMonth(), da.getDate())) / 86400000);
+  }
+  function fmtFull(iso){
+    var d = parseISO(iso);
+    return d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일 ' + WD[d.getDay()] + '요일';
+  }
+  function fmtShort(iso){
+    var d = parseISO(iso);
+    return (d.getMonth()+1) + '/' + d.getDate() + '(' + WD[d.getDay()] + ')';
+  }
+  function relDue(iso, today){
+    if (!iso) return '새 카드';
+    var n = diffDays(today, iso);
+    if (n < 0) return Math.abs(n) + '일 지남';
+    if (n === 0) return '오늘';
+    if (n === 1) return '내일';
+    if (n < 7) return n + '일 뒤';
+    return fmtShort(iso);
+  }
+  function subOf(key){
+    for (var i=0; i<SUBJECTS.length; i++) if (SUBJECTS[i].key === key) return SUBJECTS[i];
+    return SUBJECTS[SUBJECTS.length-1];
+  }
+  function toneOf(key){ return subOf(key).tone; }
+  function subLabel(card){
+    if (card.sub === 'custom' && card.subLabel) return card.subLabel;
+    return subOf(card.sub).full;
+  }
+  function uid(){
+    return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+  function esc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+  function clip(s, n){
+    s = String(s == null ? '' : s).replace(/<[^>]*>/g, '');
+    return s.length > n ? s.slice(0, n) + '…' : s;
+  }
+
+  var toastTimer = null;
+  function toast(msg){
+    var t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2100);
+  }
+
+  /* =========================================================
+     2. 내장 카드 (교재 확인 내용만)
+        · 제1절 「인간의 삶과 윤리」 교재 p.3~8
+        · 제2절 「윤리학의 기본 원리」 교재 p.12~18
+        · 사회학개론 제1장 1절 — 기존 플래너에서 검증한 개념
+     ========================================================= */
+  function sampleCards(){
+    var E1 = '제1절 인간의 삶과 윤리';
+    var E2 = '제2절 윤리학의 기본 원리';
+    var S1 = '제1장 제1절 사회학의 창시자들';
+    return [
+      { id:'eth-01', sub:'ethics', unit:E1, builtin:true,
+        front:'인간의 본성에 대한 세 학설과 대표 학자는?',
+        back:'<b>성선설</b> — 인간은 착한 성품을 갖고 태어난다 · 맹자(왕도 정치)<br><b>성악설</b> — 악한 본성은 선하게 교화할 수 있고, 정치·제도는 이 교화에 초점 · 순자<br><b>성무선악설</b> — 선함도 악함도 타고나지 않는다 · 고자, 로크(백지설)',
+        memo:'선 = 맹자 / 악 = 순자 / 둘 다 아님 = 고자·로크. 교재 p.3' },
+      { id:'eth-02', sub:'ethics', unit:E1, builtin:true,
+        front:'인간을 동물과 구분 짓는 것은? 아리스토텔레스는 인간을 뭐라고 정의했나?',
+        back:'<b>이성</b>. 인간은 식욕·성욕 같은 동물적 본성(종족 보존을 위한 본능과 충동)에 더해 이성을 갖고 있어서<br>· 자연환경을 변형하기 위해 도구를 쓰고<br>· 명예·권력·소유욕 같은 문화적 욕구를 가지며<br>· 행동을 목적에 맞게 계획하고 결과를 예측한다.<br>→ 아리스토텔레스는 인간을 <b>이성적 동물</b>로 정의했다.',
+        memo:'교재 p.3' },
+      { id:'eth-03', sub:'ethics', unit:E1, builtin:true,
+        front:'인간의 본질적 특성 9가지를 들면?',
+        back:'사회적 존재(사회화를 거쳐 온전한 인간으로 성장) · 이성적 존재 · 도구적 존재 · 유희적 존재(이해관계를 떠나 삶의 재미 추구) · 문화적 존재(상징체계를 바탕으로 문화 계승·창조) · 예술적 존재 · 정치적 존재(국가를 이루어 정치 활동) · 종교적 존재(절대적 존재에 대한 믿음) · 윤리적 존재(도덕적 주체로서 스스로 가치 있다고 여기는 것을 행함)',
+        memo:'자유 의지 = 외부 제약·구속 없이 스스로 목적을 세우고 실행할 수 있는 의지 → 도덕적 책임의 근거. 교재 p.4' },
+      { id:'eth-04', sub:'ethics', unit:E1, builtin:true,
+        front:'동양의 윤리 사상 세 가지 — 각각 어떤 삶을 말하나?',
+        back:'<b>불교</b> — 위로는 깨달음을 구하고 아래로는 중생을 구제하며 자비를 행하는 삶<br><b>유교</b> — 인의예지신(仁義禮智信)으로 표현되는 인간의 도리를 지키는 삶<br><b>도가</b> — 무위자연을 바탕으로 대자연과 하나가 되는 삶',
+        memo:'교재 p.4' },
+      { id:'eth-05', sub:'ethics', unit:E1, builtin:true,
+        front:'서양의 윤리 사상 두 갈래와, 동서양이 공통으로 두는 것은?',
+        back:'<b>소크라테스·플라톤·아리스토텔레스</b> — 정신(영혼)의 덕을 갖춘 삶<br><b>그리스도교 사상</b> — 모든 인간에 대한 조건 없는 사랑을 실천하는 삶<br>공통된 관점: 올바른 행위와 윤리가 존재하며 <b>인간의 존엄성</b>을 삶의 궁극적인 토대로 삼는다.',
+        memo:'인간의 존엄성 = 도덕규범의 근본 토대. 교재 p.4' },
+      { id:'eth-06', sub:'ethics', unit:E1, builtin:true,
+        front:'윤리 사상과 사회 사상 — 공통점과 차이는?',
+        back:'<b>공통점</b>: 인간과 사회를 탐구하고, 인간의 존엄성을 존중하며 그 실현과 행복을 추구한다.<br><b>차이</b>: 윤리 사상은 인간 탐구를 통해 <b>바람직한 삶</b>을 추구(개인적 측면), 사회 사상은 <b>이상 사회</b>를 추구하며 바람직한 공동체의 모습과 그 구체화를 다룬다(사회적 측면).',
+        memo:'서로 의존 — 플라톤 "이상적 인간과 이상적 국가는 서로 닮은 모습". 교재 p.5' },
+      { id:'eth-07', sub:'ethics', unit:E1, builtin:true,
+        front:'유교의 대동사회와 도가의 소국과민 — 각각 어떤 사회인가?',
+        back:'<b>대동사회</b>(유교): 인륜이 구현되고 복지가 실린 이상 사회. 누구나 자신의 능력을 발휘하면서도 자신만의 이익을 추구하지 않고, 병들고 소외된 계층도 잘 살며 노인과 어린이가 안심하고 사는 사회. (『예기』 예운편에 구체적으로 서술)<br><b>소국과민</b>(도가): 거대한 통일제국의 국가 형태에 반대하고 작은 나라·적은 국민을 지향. 인위적 제도와 질서를 무시하고 자연의 흐름에 따라 소박하게 사는 무위·무욕의 사회.',
+        memo:'대동 = 넓게 잘 사는 사회 / 소국과민 = 작게 소박한 사회. 교재 p.6' },
+      { id:'eth-08', sub:'ethics', unit:E1, builtin:true,
+        front:'서양 이상 사회 — 사상가와 사회를 짝지으면?',
+        back:'<b>플라톤</b> — 현명한 통치자가 다스리는 사회, 통치자는 "좋음의 이데아"에 관한 절대적 지식을 갖춤<br><b>토마스 모어</b> — 유토피아(모든 사람이 소유·생산에서 평등, 경제적으로 풍요, 도덕적으로 타락하지 않음)<br><b>베이컨</b> — 뉴 아틀란티스(과학기술 문명을 통해 이룩되는 사회, 과학적 유토피아)<br><b>루소</b> — 빈부 차이가 없는 소농으로 구성된 정치 공동체, 직접 민주주의<br><b>마르크스</b> — 생산 수단이 공유되고 계급·사유 재산이 없는 공산 사회<br><b>바쿠닌</b> — 국가의 강제력이 없는 무정부 사회',
+        memo:'유토피아 = "어디에도 없는 곳"(ou+topos). 교재 p.6~7' },
+      { id:'eth-09', sub:'ethics', unit:E1, builtin:true,
+        front:'이상 사회를 건설하기 위한 전제 조건은? (권리와 의무의 조화가 왜 중요한가)',
+        back:'① 이상 실현을 위한 <b>제도적 장치의 확보</b>(삼권 분립, 다수결 원리 등 민주주의 제도)<br>② 제도적 장치의 밑바탕이 되는 <b>정신의 내면화</b>(서로 믿고 의지하며 누구나 공평하게 살 수 있는 권리 인정)<br>③ <b>권리와 의무의 조화와 균형</b> — 각자의 권리를 내세우는 것도 중요하지만 자신의 의무를 다하는 것도 매우 중요하다. 개인의 권리와 사회에 대한 의무가 서로 조화를 이루어야 한다.<br>④ 전통적 가치관과 서구 시민의식의 조화·통합',
+        memo:'권리·의무, 자유·책임의 균형이 깨지면 개인과 사회의 조화가 깨지고 사회의 안정·통합을 기대할 수 없다. 교재 p.7' },
+      { id:'eth-10', sub:'ethics', unit:E2, builtin:true,
+        front:'상대론적 윤리설과 절대론적 윤리설 — 기준과 대표 학자는?',
+        back:'<b>상대론적</b>: 심리적 기초·문화적 상대주의에 근거, 행복·쾌락 같은 <b>결과</b>를 중시, 행동 기준은 상대적·주관적·특수적. 대표 — 소피스트, 에피쿠로스, 흄, 벤담, 듀이. 단점 — 가치 판단 기준이 애매해 도덕 자체에 대한 회의와 아노미 현상.<br><b>절대론적</b>: 형이상학적·종교적 세계관에 근거, 의무·당위 같은 <b>동기</b>를 중시, 기준은 절대적·객관적·보편적. 대표 — 소크라테스, 플라톤, 스피노자, 아리스토텔레스, 칸트, 헤겔. 단점 — 시대 변화에 적응하기 힘들다.',
+        memo:'결과 = 상대론 / 동기 = 절대론. 교재 p.13' },
+      { id:'eth-11', sub:'ethics', unit:E2, builtin:true,
+        front:'목적론적 윤리설과 의무론적 윤리설 — 무엇을 중심으로 평가하나?',
+        back:'<b>목적론적</b>: 행위의 옳고 그름이 <b>결과</b>의 좋고 나쁨에 달려 있다. 행위의 결과를 중심으로 평가 → 특정 목적의 달성 여부가 중요. 핵심 원리는 결과주의(결과상과 비례성). 대표 — 아리스토텔레스. 장점 — 의무론보다 신축적이라 도덕 딜레마 해결에 용이.<br><b>의무론적</b>: 행위의 옳고 그름이 행위의 준거나 <b>동기</b>에 달려 있다. 동기를 중심으로 평가 → 특정 의무의 이행 여부가 중요. 대표 — 칸트. 장점 — 결과주의의 편의주의를 초월.',
+        memo:'칸트 = 선의지·정언 명령·의무 의식에서 나오는 행동. 교재 p.13' },
+      { id:'eth-12', sub:'ethics', unit:E2, builtin:true,
+        front:'메타 윤리학이란? 자연주의적 오류와 이모티비즘은?',
+        back:'<b>메타 윤리학</b> — 규범 윤리학이 제시하는 규범들을 탐구 대상으로 삼는 학문. 분석 철학이 등장한 뒤 윤리에 분석 철학의 기법을 적용하면서 등장했다. ("왜 우리는 선행을 해야 하는가", "선행이란 무엇인가" 같은 물음)<br><b>무어의 자연주의적 오류</b> — 사실 판단에서 도덕 판단을 이끌어 낼 수 없다.<br><b>이모티비즘</b> — 현대 메타 윤리학의 주류로, 윤리 인식 부정론의 입장.',
+        memo:'규범 윤리학 = 어떻게 살 것인가 / 메타 윤리학 = 그 규범을 따져 물음. 교재 p.15' },
+
+      { id:'soc-01', sub:'sociology', unit:S1, builtin:true,
+        front:'콩트 — 사회학이라는 이름을 어떻게 만들었나?',
+        back:'<b>실증주의</b>. 사회도 자연처럼 관찰하고 검증해서 설명할 수 있다고 보았다. 그래서 "사회를 과학으로 연구하는 학문"에 <b>사회학(sociology)</b>이라는 이름을 처음 붙였다.',
+        memo:'콩트 = 실증주의·이름 붙이기' },
+      { id:'soc-02', sub:'sociology', unit:S1, builtin:true,
+        front:'마르크스 — 사회를 움직이는 것은?',
+        back:'사회의 바닥에는 <b>경제(생산관계)</b>가 있고, 그것이 사회의 모습을 결정한다고 보았다. 이익이 다른 <b>계급</b>끼리 부딪히는 갈등이 사회를 움직인다고 설명했다.',
+        memo:'마르크스 = 경제·계급·갈등' },
+      { id:'soc-03', sub:'sociology', unit:S1, builtin:true,
+        front:'베버 — 사회학은 무엇을 하는 학문이고, 대표 개념은?',
+        back:'사람들이 <b>왜 그렇게 행동했는지(사회적 행위)</b>를 이해하는 학문이라고 보았다. 연구할 때 자기 가치를 섞지 않는 <b>가치중립</b>, 비교를 위한 <b>이상형</b> 개념으로 유명하다.',
+        memo:'베버 = 이해·가치중립·이상형' },
+      { id:'soc-04', sub:'sociology', unit:S1, builtin:true,
+        front:'뒤르켐 — 연구 대상과 대표 개념은?',
+        back:'개인 밖에 있으면서 개인을 제약하는 <b>사회적 사실</b>을 연구 대상으로 삼았다. <b>자살론</b>, 기계적·유기적 <b>연대</b>, 규범이 무너진 상태인 <b>아노미</b>가 대표 개념이다.',
+        memo:'뒤르켐 = 사회적 사실·자살론·아노미' },
+      { id:'soc-05', sub:'sociology', unit:S1, builtin:true,
+        front:'콩트·마르크스·베버·뒤르켐을 한 단어로 구분하면?',
+        back:'콩트 = 실증주의(이름 붙인 사람)<br>마르크스 = 경제·계급 갈등<br>베버 = 행위의 이해·가치중립<br>뒤르켐 = 사회적 사실·자살론·아노미',
+        memo:'헷갈리면 "이 사람은 사회를 뭐라고 봤나" 한 줄로 적어 보기' },
+      { id:'soc-06', sub:'sociology', unit:S1, builtin:true,
+        front:'콩트와 베버가 말한 "사회학"은 어떻게 다른가?',
+        back:'<b>콩트</b> — 사회도 자연처럼 관찰·검증해서 규칙을 찾는 과학(실증주의).<br><b>베버</b> — 사람들이 왜 그렇게 행동했는지 그 이유를 이해하는 학문(사회적 행위).',
+        memo:'같은 이름, 다른 강조점: 검증 vs 이해' }
+    ];
+  }
+
+  /* =========================================================
+     3. 상태
+     ========================================================= */
+  var state = null;
+  var editingId = null;
+  var deleteArm = { id:null, timer:null };
+  var resetArm = { timer:null };
+  var lastRenderedCardId = null;
+
+  function blankState(){
+    return { v:1, cards: seedCards(), session:{ date:null, filter:'all', queue:null, idx:0, done:{}, revealed:false, counts:{again:0,hard:0,normal:0,easy:0} }, updated:0 };
+  }
+  function seedCards(){
+    var t = Date.now();
+    return sampleCards().map(function(s, i){
+      return {
+        id: s.id, sub: s.sub, subLabel: '', unit: s.unit || '', front: s.front, back: s.back,
+        memo: s.memo || '', builtin: true,
+        step: -1, due: '', reps: 0, lapses: 0, last: '', created: t + i
+      };
+    });
+  }
+  function normalizeCard(c){
+    if (!c) return null;
+    return {
+      id: c.id || uid(),
+      sub: c.sub || 'custom',
+      subLabel: c.subLabel || '',
+      unit: c.unit || '',
+      front: c.front || '',
+      back: c.back || '',
+      memo: c.memo || '',
+      builtin: !!c.builtin,
+      step: (typeof c.step === 'number') ? c.step : -1,
+      due: c.due || '',
+      reps: c.reps || 0,
+      lapses: c.lapses || 0,
+      last: c.last || '',
+      created: c.created || Date.now()
+    };
+  }
+  function loadState(){
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch(e){ raw = null; }
+    if (!raw) return blankState();
+    var s = null;
+    try { s = JSON.parse(raw); } catch(e){ s = null; }
+    if (!s || !Array.isArray(s.cards)) return blankState();
+    var st = blankState();
+    st.cards = s.cards.map(normalizeCard).filter(Boolean);
+    if (s.session && typeof s.session === 'object') {
+      st.session = {
+        date: s.session.date || null,
+        filter: s.session.filter || 'all',
+        queue: Array.isArray(s.session.queue) ? s.session.queue : null,
+        idx: s.session.idx || 0,
+        done: (s.session.done && typeof s.session.done === 'object') ? s.session.done : {},
+        revealed: !!s.session.revealed,
+        counts: s.session.counts || { again:0, hard:0, normal:0, easy:0 }
+      };
+    }
+    st.updated = s.updated || 0;
+    return st;
+  }
+  function save(){
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch(e){ toast('저장 공간이 부족해 저장하지 못했어요'); }
+  }
+  function cardById(id){
+    for (var i=0; i<state.cards.length; i++) if (state.cards[i].id === id) return state.cards[i];
+    return null;
+  }
+
+  /* =========================================================
+     4. 간격 계산
+        다시 = 오늘 뒤에 한 번 더, 단계는 처음으로
+        어려움 = 한 단계 뒤로 (새 카드는 1일)
+        보통 = 1 → 3 → 7 → 14 → 30 → 60 → 120일
+        쉬움 = 두 단계 건너뜀 (새 카드는 7일)
+     ========================================================= */
+  function nextStep(card, rating){
+    var s = (typeof card.step === 'number') ? card.step : -1;
+    if (rating === 'again') return -1;
+    if (rating === 'hard') return s < 0 ? 0 : Math.max(0, s - 1);
+    if (rating === 'normal') return s < 0 ? 0 : Math.min(LADDER.length - 1, s + 1);
+    return s < 0 ? 2 : Math.min(LADDER.length - 1, s + 2);
+  }
+  function intervalLabel(card, rating){
+    if (rating === 'again') return '오늘';
+    return LADDER[nextStep(card, rating)] + '일';
+  }
+  function isMastered(card){ return card.step >= 3; }
+  function isDue(card, today){ return !!card.due && card.due <= today; }
+  function isFresh(card){ return !card.due; }
+
+  /* =========================================================
+     5. 세션(오늘의 큐)
+     ========================================================= */
+  function ensureSession(today){
+    var s = state.session;
+    if (!s || s.date !== today){
+      state.session = { date: today, filter: 'all', queue: null, idx: 0, done: {},
+                        revealed: false, counts: { again:0, hard:0, normal:0, easy:0 } };
+      s = state.session;
+      if (!Array.isArray(s.queue)) rebuildQueue(today);
+      save();
+    }
+    if (!Array.isArray(s.queue)) rebuildQueue(today);
+    return s;
+  }
+  function filterCards(filter, today){
+    var out = [];
+    state.cards.forEach(function(c){
+      if (filter !== 'all' && c.sub !== filter) return;
+      out.push(c);
+    });
+    return out;
+  }
+  function rebuildQueue(today){
+    var s = state.session;
+    var list = filterCards(s.filter, today);
+    var pending = [], doneIds = [];
+    list.forEach(function(c){
+      if (s.done[c.id]) { doneIds.push(c.id); return; }        // 오늘 이미 넘긴 카드는 진행률에만 반영
+      if (!isFresh(c) && !isDue(c, today)) return;             // 아직 올 때가 아닌 카드는 오늘 큐에 넣지 않는다
+      pending.push(c.id);
+    });
+    var dueIds = [], freshIds = [];
+    pending.forEach(function(id){
+      var c = cardById(id);
+      if (!c) return;
+      if (isFresh(c)) freshIds.push(c); else dueIds.push(c);
+    });
+    dueIds.sort(function(a,b){
+      if (a.due !== b.due) return a.due < b.due ? -1 : 1;
+      return (a.created || 0) - (b.created || 0);
+    });
+    freshIds.sort(function(a,b){ return (a.created || 0) - (b.created || 0); });
+    s.queue = dueIds.map(function(c){ return c.id; })
+      .concat(freshIds.map(function(c){ return c.id; }))
+      .concat(doneIds);
+    s.idx = 0;
+    s.revealed = false;
+    advanceOverDone();
+  }
+  function advanceOverDone(){
+    var s = state.session;
+    if (!s.queue) return;
+    while (s.idx < s.queue.length && s.done[s.queue[s.idx]]) s.idx++;
+  }
+  function currentCard(){
+    var s = state.session;
+    if (!s.queue) return null;
+    if (s.idx < 0 || s.idx >= s.queue.length) return null;
+    return cardById(s.queue[s.idx]);
+  }
+  function sessionStats(){
+    var s = state.session;
+    var q = s.queue || [];
+    var done = 0;
+    q.forEach(function(id){ if (s.done[id]) done++; });
+    return { total:q.length, done:done, left:q.length - done };
+  }
+  function countPool(today, filter){
+    var pool = filterCards(filter, today);
+    var due = 0, fresh = 0, mastered = 0;
+    pool.forEach(function(c){
+      if (isFresh(c)) fresh++;
+      else if (isDue(c, today)) due++;
+      if (isMastered(c)) mastered++;
+    });
+    return { total: pool.length, due: due, fresh: fresh, mastered: mastered, todayWork: due + fresh };
+  }
+
+  function answer(rating){
+    var s = state.session;
+    var card = currentCard();
+    if (!card) return;
+    var today = todayISO();
+    var step = nextStep(card, rating);
+
+    card.reps = (card.reps || 0) + 1;
+    card.last = today;
+
+    if (rating === 'again'){
+      card.lapses = (card.lapses || 0) + 1;
+      card.step = -1;
+      card.due = today;
+      s.counts.again = (s.counts.again || 0) + 1;
+      s.queue.push(card.id);
+    } else {
+      card.step = step;
+      card.due = addDays(today, LADDER[step]);
+      s.done[card.id] = 1;
+      s.counts[rating] = (s.counts[rating] || 0) + 1;
+    }
+
+    s.revealed = false;
+    s.idx++;
+    advanceOverDone();
+    save();
+    renderStudy();
+    renderDeckStats();
+    window.scrollTo(0, 0);
+  }
+
+  function skipCard(){
+    var s = state.session;
+    var card = currentCard();
+    if (!card) return;
+    s.queue.push(card.id);
+    s.revealed = false;
+    s.idx++;
+    advanceOverDone();
+    save();
+    renderStudy();
+    toast('이 카드는 오늘 맨 뒤로 미뤘어요');
+  }
+
+  function previewMore(){
+    var today = todayISO();
+    var s = ensureSession(today);
+    var inQueue = {};
+    (s.queue || []).forEach(function(id){ inQueue[id] = 1; });
+    var candidates = state.cards.filter(function(c){
+      if (inQueue[c.id] || s.done[c.id]) return false;
+      if (s.filter !== 'all' && c.sub !== s.filter) return false;
+      return true;
+    });
+    candidates.sort(function(a,b){
+      var ad = a.due || '9999-12-31', bd = b.due || '9999-12-31';
+      if (ad !== bd) return ad < bd ? -1 : 1;
+      return (a.created || 0) - (b.created || 0);
+    });
+    if (!candidates.length){ toast('더 볼 카드가 없어요'); return; }
+    var add = candidates.slice(0, 3);
+    add.forEach(function(c){ s.queue.push(c.id); });
+    s.idx = Math.min(s.idx, s.queue.length - add.length);
+    save();
+    renderStudy();
+    toast(add.length + '장 미리 볼 카드로 넣었어요');
+  }
+
+  /* =========================================================
+     6. 렌더 — 헤더/칩/학습
+     ========================================================= */
+  function renderHero(today){
+    var s = state.session;
+    var st = sessionStats();
+    var pool = countPool(today, s.filter);
+    $('todayLine').textContent = fmtFull(today);
+    var title;
+    if (!pool.total) title = '카드를 먼저 만들어요';
+    else if (!st.total) title = '오늘 복습 끝!';
+    else if (!st.left) title = '오늘 복습 끝!';
+    else title = '오늘 볼 카드 ' + st.left + '장';
+    $('heroTitle').textContent = title;
+
+    var totalDue = countPool(today, 'all');
+    $('heroPills').innerHTML =
+      '<span class="pill sage">새 카드 ' + totalDue.fresh + '</span>' +
+      '<span class="pill amber">오늘 복습 ' + totalDue.due + '</span>' +
+      '<span class="pill">마스터 ' + totalDue.mastered + '</span>';
+
+    var pct = st.total ? Math.round((st.done / st.total) * 100) : 0;
+    $('progLeft').textContent = '남은 ' + st.left + '장';
+    $('progRight').textContent = '완료 ' + st.done + '장';
+    $('progFill').style.width = pct + '%';
+    var track = $('progTrack');
+    track.setAttribute('aria-valuemax', String(st.total));
+    track.setAttribute('aria-valuenow', String(st.done));
+  }
+
+  function renderChips(){
+    var today = todayISO();
+    var s = state.session;
+    var wrap = $('chips');
+    var html = '';
+    var allCount = countPool(today, 'all');
+    html += chipHTML('all', '전체', allCount.todayWork, s.filter === 'all');
+    SUBJECTS.forEach(function(sub){
+      var pool = countPool(today, sub.key);
+      if (!pool.total && s.filter !== sub.key) return;
+      html += chipHTML(sub.key, sub.label, pool.todayWork, s.filter === sub.key);
+    });
+    wrap.innerHTML = html;
+    Array.prototype.forEach.call(wrap.querySelectorAll('.chip'), function(b){
+      b.addEventListener('click', function(){
+        var key = b.getAttribute('data-sub');
+        if (state.session.filter === key) return;
+        state.session.filter = key;
+        state.session.queue = null;
+        state.session.done = state.session.done || {};
+        rebuildQueue(todayISO());
+        save();
+        renderAll();
+      });
+    });
+  }
+  function chipHTML(key, label, n, on){
+    return '<button class="chip" type="button" data-sub="' + key + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+      esc(label) + '<span class="n">' + n + '</span></button>';
+  }
+
+  function renderStudy(){
+    var today = todayISO();
+    var s = ensureSession(today);
+    renderHero(today);
+    var area = $('studyArea');
+    var st = sessionStats();
+    var pool = countPool(today, s.filter);
+
+    if (!state.cards.length){
+      area.innerHTML = emptyCardHTML(
+        '🃏', '카드가 아직 없어요',
+        '카드 관리 탭에서 <b>+ 카드 추가</b>를 누르거나, 아래 버튼으로 내장 카드 18장을 다시 넣을 수 있어요.',
+        '예시 카드 18장 넣기', 'seed');
+      bindEmptyAction();
+      return;
+    }
+    if (!st.total){
+      var next = nextDueDate(today);
+      area.innerHTML = emptyCardHTML(
+        '🌿', '오늘 볼 카드는 없어요',
+        next ? ('다음 복습은 <b>' + fmtShort(next) + '</b>예요.') : '',
+        '가장 빠른 카드 3장 미리 보기', 'preview');
+      bindEmptyAction();
+      return;
+    }
+    var card = currentCard();
+    if (!card){
+      if (st.left > 0){
+        area.innerHTML = leftoverHTML(st.left);
+        bindLeftover();
+      } else {
+        area.innerHTML = celebrateHTML(today);
+        bindCelebrate();
+      }
+      return;
+    }
+    area.innerHTML = studyCardHTML(card, today, s);
+    bindStudyCard(card);
+  }
+
+  function nextDueDate(today){
+    var best = null;
+    state.cards.forEach(function(c){
+      if (!c.due) return;
+      if (c.due > today && (!best || c.due < best)) best = c.due;
+    });
+    return best;
+  }
+
+  function studyCardHTML(card, today, s){
+    var tone = toneOf(card.sub);
+    var isNew = isFresh(card);
+    var fh = card.builtin ? card.front : esc(card.front).replace(/\n/g, '<br>');
+    var bh = card.builtin ? card.back : esc(card.back).replace(/\n/g, '<br>');
+    var badges = '<span class="badge ' + tone + '">' + esc(subLabel(card)) + '</span>';
+    if (card.unit) badges += '<span class="badge">' + esc(card.unit) + '</span>';
+    if (isNew) badges += '<span class="badge new">새 카드</span>';
+    else if (card.reps) badges += '<span class="badge new">' + card.reps + '번째</span>';
+
+    var backInner =
+      '<div class="badges">' + badges + '</div>' +
+      '<p class="atext">' + bh + '</p>' +
+      (card.memo ? '<div class="memo"><span class="ic">💡</span><span>' + esc(card.memo) + '</span></div>' : '');
+
+    var frontInner =
+      '<div class="badges">' + badges + '</div>' +
+      '<p class="qtext">' + fh + '</p>' +
+      '<p class="tap-hint"><span class="ic">👆</span> 탭해서 답 보기</p>';
+
+    var note;
+    if (isNew) note = '새 카드는 어려움·보통 모두 1일 뒤로 잡혀요.';
+    else if (card.step < 0) note = '되감긴 카드예요. 다시 1일부터 쌓아요.';
+    else note = '지금 간격 ' + LADDER[Math.max(0, card.step)] + '일';
+
+    var html = '';
+    html += '<div class="flipper' + (s.revealed ? ' flipped' : '') + '" id="flipWrap">' +
+      '<div class="flip-inner">' +
+        '<div class="face front" id="faceFront">' + frontInner + '</div>' +
+        '<div class="face back" id="faceBack">' + backInner + '</div>' +
+      '</div></div>';
+
+    html += '<div class="raters' + (s.revealed ? '' : ' locked') + '" id="raters">' +
+      raterHTML('again', '다시', intervalLabel(card, 'again'), 'r-again') +
+      raterHTML('hard', '어려움', intervalLabel(card, 'hard'), 'r-hard') +
+      raterHTML('normal', '보통', intervalLabel(card, 'normal'), 'r-good') +
+      raterHTML('easy', '쉬움', intervalLabel(card, 'easy'), 'r-easy') +
+      '</div>';
+    html += '<p class="rater-note" id="raterNote">' + esc(note) + '</p>';
+    html += '<div class="under-row">' +
+      '<button class="ghost" id="skipBtn" type="button">⏭ 나중에</button>' +
+      '<button class="ghost" id="flipBtn" type="button">' + (s.revealed ? '질문 다시 보기' : '답 보기') + '</button>' +
+      '</div>';
+    return html;
+  }
+  function raterHTML(rating, label, iv, cls){
+    return '<button class="rater ' + cls + '" type="button" data-rating="' + rating + '" aria-label="' + label + ' · ' + iv + '">' +
+      '<span class="lab">' + label + '</span><span class="iv">' + iv + '</span></button>';
+  }
+
+  function bindStudyCard(card){
+    lastRenderedCardId = card.id;
+    var wrap = $('flipWrap');
+    var front = $('faceFront');
+    var back = $('faceBack');
+
+    function faceHeight(el){
+      var pb = el.style.bottom, ph = el.style.height;
+      el.style.bottom = 'auto';
+      el.style.height = 'auto';
+      var h = el.scrollHeight;
+      el.style.bottom = pb;
+      el.style.height = ph;
+      return h;
+    }
+    function measure(){
+      if (!wrap || !front || !back) return;
+      var flipped = wrap.classList.contains('flipped');
+      var el = flipped ? back : front;
+      wrap.style.height = Math.max(faceHeight(el), 200) + 'px';
+    }
+    measure();
+    requestAnimationFrame(measure);
+    setTimeout(measure, 60);
+    setTimeout(measure, 320);
+
+    function flip(){
+      var shown = wrap.classList.toggle('flipped');
+      state.session.revealed = shown;
+      var raters = $('raters');
+      if (raters) raters.classList.toggle('locked', !shown);
+      var fb = $('flipBtn');
+      if (fb) fb.textContent = shown ? '질문 다시 보기' : '답 보기';
+      if (shown) wrap.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      measure();
+      requestAnimationFrame(measure);
+      setTimeout(measure, 60);
+      setTimeout(measure, 360);
+      save();
+    }
+
+    wrap.addEventListener('click', flip);
+    wrap.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); }
+    });
+
+    var fb = $('flipBtn');
+    if (fb) fb.addEventListener('click', flip);
+
+    var skip = $('skipBtn');
+    if (skip) skip.addEventListener('click', skipCard);
+
+    Array.prototype.forEach.call(document.querySelectorAll('#raters .rater'), function(b){
+      b.addEventListener('click', function(){
+        if (!state.session.revealed){
+          toast('먼저 답을 확인해 주세요');
+          return;
+        }
+        answer(b.getAttribute('data-rating'));
+      });
+    });
+
+    window.removeEventListener('resize', measure);
+    window.addEventListener('resize', measure);
+  }
+
+  function celebrateHTML(today){
+    var c = state.session.counts || {};
+    var st = sessionStats();
+    var next = nextDueDate(today);
+    var total = (c.again||0)+(c.hard||0)+(c.normal||0)+(c.easy||0);
+    return '<div class="card done-wrap">' +
+      '<div class="done-emoji">🎉</div>' +
+      '<h2>오늘 복습 끝냈어요!</h2>' +
+      '<p class="small muted">오늘 카드 ' + total + '장을 넘겼어요. 기억은 이렇게 간격을 두고 다시 볼 때 남아요.</p>' +
+      '<div class="stat-row">' +
+        '<span class="pill rose">다시 ' + (c.again||0) + '</span>' +
+        '<span class="pill">어려움 ' + (c.hard||0) + '</span>' +
+        '<span class="pill sage">보통 ' + (c.normal||0) + '</span>' +
+        '<span class="pill amber">쉬움 ' + (c.easy||0) + '</span>' +
+      '</div>' +
+      (next ? '<p class="small muted" style="margin-bottom:14px;">다음 복습은 <b>' + fmtShort(next) + '</b>부터예요.</p>' : '') +
+      '<button class="big-btn" id="againDone" type="button">오늘 큐 다시 보기</button>' +
+      '<button class="big-btn sub" id="goDeck" type="button">카드 관리로 가기</button>' +
+    '</div>';
+  }
+  function bindCelebrate(){
+    var a = $('againDone');
+    if (a) a.addEventListener('click', function(){
+      state.session.queue = null;
+      state.session.done = state.session.done || {};
+      rebuildQueue(todayISO());
+      renderAll();
+      toast('오늘 다시 볼 카드가 없으면 이 화면이 계속 보여요');
+    });
+    var g = $('goDeck');
+    if (g) g.addEventListener('click', function(){ showTab('deck'); });
+  }
+
+  function leftoverHTML(n){
+    return '<div class="card done-wrap">' +
+      '<div class="done-emoji">🌱</div>' +
+      '<h2>오늘 볼 카드 ' + n + '장이 남았어요</h2>' +
+      '<p class="small muted">나중에로 미뤄 둔 카드예요. 지금 이어서 해도 되고, 내일 다시 열어도 돼요.</p>' +
+      '<button class="big-btn" id="resumeBtn" type="button" style="margin-top:16px;">이어서 보기</button>' +
+      '<button class="big-btn sub" id="emptyDeck" type="button">카드 관리로 가기</button>' +
+    '</div>';
+  }
+  function bindLeftover(){
+    var r = $('resumeBtn');
+    if (r) r.addEventListener('click', function(){
+      state.session.queue = null;
+      rebuildQueue(todayISO());
+      renderAll();
+    });
+    var d = $('emptyDeck');
+    if (d) d.addEventListener('click', function(){ showTab('deck'); });
+  }
+
+  function emptyCardHTML(emoji, title, body, btnLabel, action){
+    return '<div class="card done-wrap">' +
+      '<div class="done-emoji">' + emoji + '</div>' +
+      '<h2>' + title + '</h2>' +
+      '<p class="small muted">' + body + '</p>' +
+      '<button class="big-btn" id="emptyAct" data-act="' + action + '" type="button" style="margin-top:16px;">' + btnLabel + '</button>' +
+      '<button class="big-btn sub" id="emptyDeck" type="button">카드 관리로 가기</button>' +
+    '</div>';
+  }
+  function bindEmptyAction(){
+    var b = $('emptyAct');
+    if (b) b.addEventListener('click', function(){
+      if (b.getAttribute('data-act') === 'seed') restoreSamples();
+      else previewMore();
+    });
+    var d = $('emptyDeck');
+    if (d) d.addEventListener('click', function(){ showTab('deck'); });
+  }
+
+  /* =========================================================
+     7. 렌더 — 덱
+     ========================================================= */
+  function renderDeckStats(){
+    var today = todayISO();
+    var wrap = $('subjStats');
+    if (!wrap) return;
+    var html = '';
+    SUBJECTS.forEach(function(sub){
+      var pool = countPool(today, sub.key);
+      if (!pool.total) return;
+      html += '<div class="subj-row">' +
+        '<span class="dot" style="background:' + dotColor(sub.tone) + '"></span>' +
+        '<div class="nm">' + esc(sub.full) + '<small>오늘 할 일 ' + pool.todayWork + '장</small></div>' +
+        '<div class="num">' + pool.total + '장<br>마스터 ' + pool.mastered + '</div>' +
+        '</div>';
+    });
+    if (!html) html = '<p class="list-empty">아직 카드가 없어요.</p>';
+    wrap.innerHTML = html;
+  }
+  function dotColor(tone){
+    return ({ sage:'#9BB894', blue:'#A9BFD4', sand:'#DCC4A9', lav:'#BFB1CE', clay:'#D6A9A2', mint:'#9DC7B8' })[tone] || '#C9DBBE';
+  }
+
+  function renderList(){
+    var today = todayISO();
+    var q = ($('search') && $('search').value || '').trim().toLowerCase();
+    var list = state.cards.slice().sort(function(a,b){
+      var sa = indexOfSub(a.sub), sb = indexOfSub(b.sub);
+      if (sa !== sb) return sa - sb;
+      return (a.created || 0) - (b.created || 0);
+    });
+    if (q){
+      list = list.filter(function(c){
+        return (c.front + ' ' + c.back + ' ' + (c.unit||'') + ' ' + (c.memo||'') + ' ' + subLabel(c)).toLowerCase().indexOf(q) >= 0;
+      });
+    }
+    var wrap = $('cardList');
+    if (!wrap) return;
+    if (!list.length){
+      wrap.innerHTML = '<p class="list-empty">' + (q ? '검색 결과가 없어요.' : '카드가 없어요. + 카드 추가로 만들어 보세요.') + '</p>';
+      return;
+    }
+    var html = '';
+    list.forEach(function(c){
+      var armed = deleteArm.id === c.id;
+      var dueTxt;
+      if (isFresh(c)) dueTxt = '새 카드';
+      else if (isDue(c, today)) dueTxt = '오늘 복습';
+      else dueTxt = relDue(c.due, today) + ' · ' + fmtShort(c.due);
+      html += '<div class="crow" data-card="' + c.id + '">' +
+        '<div class="top">' +
+          '<span class="badge ' + toneOf(c.sub) + '">' + esc(subLabel(c)) + '</span>' +
+          (c.unit ? '<span class="badge">' + esc(c.unit) + '</span>' : '') +
+          (isMastered(c) ? '<span class="badge new">마스터</span>' : '') +
+        '</div>' +
+        '<p class="q">' + esc(clip(c.front, 90)) + '</p>' +
+        '<p class="a">' + esc(clip(c.back, 120)) + '</p>' +
+        '<div class="foot">' +
+          '<span class="due">' + esc(dueTxt) + '</span>' +
+          '<span class="acts">' +
+            '<button class="mini" type="button" data-edit="' + c.id + '">수정</button>' +
+            '<button class="mini danger' + (armed ? ' armed' : '') + '" type="button" data-del="' + c.id + '">' + (armed ? '한 번 더' : '삭제') + '</button>' +
+          '</span>' +
+        '</div>' +
+      '</div>';
+    });
+    wrap.innerHTML = html;
+
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-edit]'), function(b){
+      b.addEventListener('click', function(){ openSheet(b.getAttribute('data-edit')); });
+    });
+    Array.prototype.forEach.call(wrap.querySelectorAll('[data-del]'), function(b){
+      b.addEventListener('click', function(){ armDelete(b.getAttribute('data-del')); });
+    });
+  }
+  function indexOfSub(key){
+    for (var i=0; i<SUBJECTS.length; i++) if (SUBJECTS[i].key === key) return i;
+    return 99;
+  }
+
+  function armDelete(id){
+    if (deleteArm.id === id){
+      clearTimeout(deleteArm.timer);
+      deleteArm.id = null;
+      var card = cardById(id);
+      state.cards = state.cards.filter(function(c){ return c.id !== id; });
+      if (state.session.queue){
+        state.session.queue = state.session.queue.filter(function(q){ return q !== id; });
+      }
+      delete state.session.done[id];
+      save();
+      renderAll();
+      toast(card ? ('"' + clip(card.front, 18) + '" 카드를 지웠어요') : '카드를 지웠어요');
+      return;
+    }
+    deleteArm.id = id;
+    clearTimeout(deleteArm.timer);
+    deleteArm.timer = setTimeout(function(){
+      deleteArm.id = null;
+      renderList();
+    }, 4000);
+    renderList();
+    toast('한 번 더 누르면 삭제돼요');
+  }
+
+  /* =========================================================
+     8. 시트(추가/수정)
+     ========================================================= */
+  function openSheet(id){
+    editingId = id || null;
+    var c = id ? cardById(id) : null;
+    $('sheetTitle').textContent = c ? '카드 수정' : '카드 추가';
+    $('fSub').value = c ? c.sub : (state.session.filter !== 'all' && state.session.filter !== 'custom' ? state.session.filter : 'ethics');
+    $('fCustom').value = c && c.sub === 'custom' ? (c.subLabel || '') : '';
+    $('fUnit').value = c ? (c.unit || '') : '';
+    $('fFront').value = c ? c.front : '';
+    $('fBack').value = c ? c.back : '';
+    $('fMemo').value = c ? (c.memo || '') : '';
+    syncCustom();
+    $('sheetWrap').classList.remove('hidden');
+    setTimeout(function(){ $('fFront').focus(); }, 120);
+  }
+  function closeSheet(){
+    $('sheetWrap').classList.add('hidden');
+    editingId = null;
+  }
+  function syncCustom(){
+    var isCustom = $('fSub').value === 'custom';
+    $('customWrap').classList.toggle('hidden', !isCustom);
+  }
+  function saveSheet(){
+    var sub = $('fSub').value;
+    var subLabelTxt = $('fCustom').value.trim();
+    var unit = $('fUnit').value.trim();
+    var front = $('fFront').value.trim();
+    var back = $('fBack').value.trim();
+    var memo = $('fMemo').value.trim();
+    if (!front){ toast('앞면(질문)을 적어 주세요'); $('fFront').focus(); return; }
+    if (!back){ toast('뒷면(답)을 적어 주세요'); $('fBack').focus(); return; }
+    if (sub === 'custom' && !subLabelTxt) subLabelTxt = '직접 추가';
+
+    if (editingId){
+      var c = cardById(editingId);
+      if (c){
+        c.sub = sub; c.subLabel = sub === 'custom' ? subLabelTxt : '';
+        c.unit = unit; c.front = front; c.back = back; c.memo = memo;
+        toast('카드를 고쳤어요');
+      }
+    } else {
+      state.cards.push({
+        id: uid(), sub: sub, subLabel: sub === 'custom' ? subLabelTxt : '',
+        unit: unit, front: front, back: back, memo: memo, builtin: false,
+        step: -1, due: '', reps: 0, lapses: 0, last: '', created: Date.now()
+      });
+      toast('카드를 추가했어요');
+    }
+    state.session.queue = null;
+    if (state.session.date !== todayISO()) state.session.date = todayISO();
+    save();
+    closeSheet();
+    renderAll();
+  }
+
+  /* =========================================================
+     9. 안전장치
+     ========================================================= */
+  function restoreSamples(){
+    var have = {};
+    state.cards.forEach(function(c){ if (c.builtin) have[c.id] = 1; });
+    var added = 0;
+    seedCards().forEach(function(c){
+      if (have[c.id]) return;
+      state.cards.push(c);
+      added++;
+    });
+    if (!added){ toast('내장 카드 18장은 이미 다 있어요'); return; }
+    state.session.queue = null;
+    save();
+    renderAll();
+    toast('내장 카드 ' + added + '장을 다시 넣었어요');
+  }
+
+  function armReset(){
+    var btn = $('resetBtn');
+    if (resetArm.timer){
+      clearTimeout(resetArm.timer);
+      resetArm.timer = null;
+      btn.classList.remove('armed');
+      btn.innerHTML = '<span>전체 초기화<small>내 카드·복습 기록을 모두 지우고 처음 상태로</small></span><span aria-hidden="true">⚠️</span>';
+      resetAll();
+      return;
+    }
+    resetArm.timer = setTimeout(function(){
+      resetArm.timer = null;
+      var b = $('resetBtn');
+      if (!b) return;
+      b.classList.remove('armed');
+      b.innerHTML = '<span>전체 초기화<small>내 카드·복습 기록을 모두 지우고 처음 상태로</small></span><span aria-hidden="true">⚠️</span>';
+    }, 4000);
+    btn.classList.add('armed');
+    btn.innerHTML = '<span>한 번 더 누르면 전부 지워져요<small>4초 안에 다시 누르면 실행돼요</small></span><span aria-hidden="true">⚠️</span>';
+    toast('한 번 더 누르면 초기화돼요');
+  }
+  function resetAll(){
+    var keepFilter = state.session.filter;
+    state = blankState();
+    state.session.filter = keepFilter;
+    state.session.date = todayISO();
+    save();
+    renderAll();
+    toast('처음 상태로 되돌렸어요 (내장 카드 18장)');
+  }
+
+  /* =========================================================
+     10. 탭/이벤트
+     ========================================================= */
+  function showTab(name){
+    Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function(b){
+      b.setAttribute('aria-selected', b.getAttribute('data-tab') === name ? 'true' : 'false');
+    });
+    $('panel-study').classList.toggle('hidden', name !== 'study');
+    $('panel-deck').classList.toggle('hidden', name !== 'deck');
+    if (name === 'study') renderStudy();
+    else { renderDeckStats(); renderList(); }
+    window.scrollTo(0, 0);
+  }
+
+  function renderAll(){
+    var today = todayISO();
+    ensureSession(today);
+    renderChips();
+    renderStudy();
+    renderDeckStats();
+    renderList();
+  }
+
+  function bind(){
+    Array.prototype.forEach.call(document.querySelectorAll('.tabbar button'), function(b){
+      b.addEventListener('click', function(){ showTab(b.getAttribute('data-tab')); });
+    });
+    $('addBtn').addEventListener('click', function(){ openSheet(null); });
+    $('sheetClose').addEventListener('click', closeSheet);
+    $('sheetCancel').addEventListener('click', closeSheet);
+    $('sheetSave').addEventListener('click', saveSheet);
+    $('fSub').addEventListener('change', syncCustom);
+    $('restoreBtn').addEventListener('click', restoreSamples);
+    $('resetBtn').addEventListener('click', armReset);
+    $('search').addEventListener('input', function(){ renderList(); });
+    $('sheetWrap').addEventListener('click', function(e){
+      if (e.target === $('sheetWrap')) closeSheet();
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closeSheet();
+    });
+  }
+
+  /* =========================================================
+     11. 시작
+     ========================================================= */
+  state = loadState();
+  save();
+  bind();
+  renderAll();
+})();
+</script>
+</body>
+</html>
