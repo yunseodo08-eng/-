@@ -1002,7 +1002,7 @@
       if (!wrap || !front || !back) return;
       var flipped = wrap.classList.contains('flipped');
       var el = flipped ? back : front;
-      wrap.style.height = Math.max(faceHeight(el), 200) + 'px';
+      wrap.style.height = Math.max(faceHeight(el), 180) + 'px';
     }
     measure();
     requestAnimationFrame(measure);
