@@ -187,6 +187,7 @@
   .b-soon{ background:#F3F1E8; color:#8A8674; }
   .b-done{ background:#F0F2EE; color:#8F997F; }
   .b-weak{ background:#F6E8DE; color:#9A6A45; }
+  .b-carry{ background:var(--lav-soft); color:#6E5F80; }
   .rev-meta{ font-size:11.5px; color:var(--muted); margin-top:3px; font-variant-numeric:tabular-nums; }
   .rev-actions{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
   .sec-label{ font-size:11.5px; font-weight:800; color:var(--muted); margin:14px 0 2px; letter-spacing:0.02em; }
@@ -362,12 +363,6 @@
         <h3>사회학개론 · 쉬운 개념 카드</h3>
         <p class="muted small" style="margin:-4px 0 10px">「제1장 제1절 사회학의 창시자들」 첫 진도 전에 미리 훑어보거나, 이해가 안 되는 부분만 눌러서 펴 봐. 카드를 다 읽었으면 <b>책 덮고 한 문장씩 설명하기</b>까지 해 보자.</p>
         <div class="concept-wrap" id="conceptList"></div>
-      </div>
-
-      <div class="card hidden" id="carryCard">
-        <h3>밀린 과제</h3>
-        <p class="muted small" style="margin:-4px 0 8px">한 번에 몰아서 다 하지 않아. 오늘 시간에 맞는 것만 골라서 가져와.</p>
-        <div id="carryList"></div>
       </div>
 
       <div class="card">
@@ -1010,23 +1005,88 @@ function doneUnits(subjectId, asOf){
   return n;
 }
 
-/* ---------- 간격복습 ---------- */
-function reviewItems(uptoDate, asOf){
-  var first = firstStudyMap(asOf);
-  var recs = loadState().records.filter(function(r){
-    if (r.kind !== 'review') return false;
-    if (asOf && !(r.date < asOf)) return false;
-    return true;
+/* ---------- 계획 계산용 색인 ----------
+   시작일부터 그날까지 하루씩 계산하려면 기록을 매번 훑으면 느리다.
+   기록을 한 번만 훑어 단원별 첫 학습일·복습 완료일·취약 기록·날짜별 기록을 만들어 두고 쓴다. */
+function planTaskKey(kind, unitId, step){
+  var k = (kind === 'review' ? 'review' : 'study') + ':' + unitId;
+  if (kind === 'review') k += ':' + (step == null ? 1 : Number(step));
+  return k;
+}
+function planIndex(){
+  var recs = loadState().records;
+  var idx = { recs: recs, byDate: {}, first: {}, firstRec: {}, firstRev: {}, firstRevRec: {}, weakFrom: {}, doneKey: {} };
+  recs.forEach(function(r){
+    if (!r || !r.date) return;
+    (idx.byDate[r.date] || (idx.byDate[r.date] = [])).push(r);
+    if (!r.unitId) return;
+    var key = planTaskKey(r.kind, r.unitId, r.step);
+    if (!idx.doneKey[key] || r.date < idx.doneKey[key]) idx.doneKey[key] = r.date;
+    var weak = !!r.weakFlag
+      || (typeof r.understanding === 'number' && r.understanding > 0 && r.understanding <= 2)
+      || (typeof r.questions === 'number' && r.questions >= 5 && typeof r.correct === 'number' && (r.correct / r.questions) < 0.7);
+    if (weak && (!idx.weakFrom[r.unitId] || r.date < idx.weakFrom[r.unitId])) idx.weakFrom[r.unitId] = r.date;
+    if (r.kind === 'study') {
+      if (!idx.first[r.unitId] || r.date < idx.first[r.unitId]) { idx.first[r.unitId] = r.date; idx.firstRec[r.unitId] = r; }
+    } else if (r.kind === 'review') {
+      var rk = r.unitId + '|' + Number(r.step || 1);
+      if (!idx.firstRev[rk] || r.date < idx.firstRev[rk]) { idx.firstRev[rk] = r.date; idx.firstRevRec[rk] = r; }
+    }
   });
+  return idx;
+}
+function idxRecords(idx, dateStr){ return idx.byDate[dateStr] || []; }
+function idxMinutes(idx, dateStr){
+  return idxRecords(idx, dateStr).reduce(function(a, r){ return a + (Number(r.minutes) || 0); }, 0);
+}
+// asOf = 그날을 시작할 때의 상태 (그날 기록은 빼고 본다)
+function idxFirstMap(idx, asOf){
+  var map = {};
+  Object.keys(idx.first).forEach(function(uid){
+    if (asOf && !(idx.first[uid] < asOf)) return;
+    map[uid] = idx.first[uid];
+  });
+  return map;
+}
+function idxDoneUnits(idx, subjectId, asOf){
+  var n = 0;
+  Object.keys(idx.first).forEach(function(uid){
+    if (asOf && !(idx.first[uid] < asOf)) return;
+    var u = unitById(uid);
+    if (u && (!subjectId || u.subject === subjectId)) n++;
+  });
+  return n;
+}
+function idxWeakUnits(idx, asOf){
   var out = [];
-  Object.keys(first).forEach(function(uid){
+  Object.keys(idx.first).forEach(function(uid){
+    if (!idx.first[uid] || (asOf && !(idx.first[uid] < asOf))) return;
+    if (!idx.weakFrom[uid]) return;
+    if (asOf && !(idx.weakFrom[uid] < asOf)) return;
+    out.push(uid);
+  });
+  return out;
+}
+function idxWeekMinutes(idx, dateStr){
+  var ws = weekStartOf(dateStr), total = 0;
+  for (var i = 0; i < 7; i++) total += idxMinutes(idx, addDays(ws, i));
+  return total;
+}
+
+/* ---------- 간격복습 ---------- */
+function reviewItems(uptoDate, asOf){ return reviewItemsIdx(planIndex(), uptoDate, asOf); }
+function reviewItemsIdx(idx, uptoDate, asOf){
+  var out = [];
+  Object.keys(idx.first).forEach(function(uid){
+    var base = idx.first[uid];
+    if (asOf && !(base < asOf)) return;          // 그날 시작 시점에 아직 학습 전이면 복습도 없다
     var u = unitById(uid);
     if (!u) return;
-    var base = first[uid];
     CFG.reviewSteps.forEach(function(step){
       var due = addDays(base, step);
-      var done = recs.filter(function(r){ return r.unitId === uid && Number(r.step) === step; })
-                     .sort(function(a, b){ return a.date < b.date ? -1 : 1; })[0] || null;
+      var rk = uid + '|' + step;
+      var doneDate = idx.firstRev[rk] || null;
+      var done = (doneDate && (!asOf || doneDate < asOf)) ? idx.firstRevRec[rk] : null;
       var status;
       if (done) status = 'done';
       else if (due < uptoDate) status = 'late';
@@ -1034,7 +1094,8 @@ function reviewItems(uptoDate, asOf){
       else status = 'soon';
       out.push({
         unitId: uid, subject: u.subject, label: u.label, step: step, base: base,
-        due: due, done: done, status: status, weak: unitWeak(uid, asOf),
+        due: due, done: done, status: status,
+        weak: !!(idx.weakFrom[uid] && (!asOf || idx.weakFrom[uid] < asOf)),
         id: 'rev:' + uid + ':' + step
       });
     });
@@ -1067,8 +1128,9 @@ function weekMinutesUsed(dateStr){
   for (var i = 0; i < 7; i++) total += minutesOn(addDays(ws, i));
   return total;
 }
-function nextUnitFor(subjectId, exclude, asOf){
-  var first = firstStudyMap(asOf);
+function nextUnitFor(subjectId, exclude, asOf){ return nextUnitForIdx(planIndex(), subjectId, exclude, asOf); }
+function nextUnitForIdx(idx, subjectId, exclude, asOf){
+  var first = idxFirstMap(idx, asOf);
   var list = SUBJ_MAP[subjectId].units;
   for (var i = 0; i < list.length; i++) {
     var u = list[i];
@@ -1101,45 +1163,104 @@ function reviewTaskDetail(it){
   return unitHead(unitById(it.unitId)).replace(/ · $/, '');
 }
 
-function planFor(dateStr){
-  // 시작일 전날까지는 계획을 만들지 않고 '준비 화면'용 값을 돌려준다.
-  if (beforeStart(dateStr)) {
-    return {
-      date: dateStr, day: dayNumber(dateStr), beforeStart: true,
-      limit: 0, used: minutesOn(dateStr), remaining: 0, total: 0,
-      tasks: [], deferred: [], subjects: [], weak: [],
-      preview: planFor(CFG.start)
-    };
+/* ---------- 미완료 과제 자동 이월 ----------
+   계획은 '그날을 시작할 때의 기록'(asOf = 그날)으로만 짠다. 그래야 그날 홈에서 체크·기록을 해도
+   오늘 과제 목록이 흔들리지 않는다.
+   시작일부터 그날까지 하루씩 계산하면서, 그날 배정됐는데 그날까지 기록이 없는 과제는
+   다음 날 목록 맨 앞으로 넘긴다. 이월된 과제가 먼저 들어가고 남는 시간에만 그날 요일의
+   복습·신규 진도가 들어간다. 한도를 넘는 것은 다음 날로 넘어가고, 하루·주간 한도는 넘지 않는다. */
+var planMemo = { sig: null, map: {} };
+
+function planStateSig(){
+  var st = loadState(), parts = [], chex = [];
+  st.records.forEach(function(r){
+    parts.push([r.date, r.kind, r.unitId || '', r.step == null ? '' : r.step,
+                Number(r.minutes) || 0, r.weakFlag ? 1 : 0,
+                r.understanding == null ? '' : r.understanding,
+                r.questions == null ? '' : r.questions,
+                r.correct == null ? '' : r.correct].join('~'));
+  });
+  Object.keys(st.checks || {}).forEach(function(d){
+    Object.keys(st.checks[d] || {}).forEach(function(id){ if (st.checks[d][id]) chex.push(d + ' ' + id); });
+  });
+  return parts.join(';') + '|' + chex.join(';');
+}
+// 그날(d)까지 완료 기록이 있는가 — 이월 판단
+// strict면 그날 기록은 빼고 본다(그날 목록은 '그날을 시작할 때의 기록'으로만 짜기 때문).
+function planDoneBy(idx, task, d, strict){
+  if (!task || !task.unitId) return false;
+  var key = planTaskKey(task.kind, task.unitId, task.step);
+  var date = idx.doneKey[key];
+  if (!date) return false;
+  return strict ? (date < d) : (date <= d);
+}
+// 그날(d) 안에 체크·기록된 과제인가 — 목록의 체크 표시
+function planDoneOn(idx, task, d){
+  var checks = (loadState().checks || {})[d] || {};
+  if (task.id && checks[task.id]) return true;
+  return idxRecords(idx, d).some(function(r){ return recordMatchesTask(r, task); });
+}
+// 오늘 목록에서 못 한 과제 → 내일 목록 맨 앞
+function nextCarryQueue(queue, plan, d, idx){
+  var out = [], seen = {};
+  function keep(t, origin){
+    if (!t || !t.unitId) return;
+    var k = planTaskKey(t.kind, t.unitId, t.step);
+    if (seen[k]) return;
+    if (planDoneBy(idx, t, d)) return;           // 이미 한 단원·복습 단계는 다시 이월하지 않는다
+    seen[k] = 1;
+    out.push({ task: t, origin: origin });
   }
-  // 계획은 '그날 시작 시점'의 기록으로만 짠다(asOf = dateStr).
-  // 그래야 홈에서 체크해 오늘 기록이 쌓여도 과제 목록·단원 배정이 흔들리지 않고,
-  // 게이지·진도·복습·기록만 그대로 반영된다.
-  var asOf = dateStr;
-  var limit = Math.min(dayLimit(dateStr), Math.max(0, CFG.weekLimit - weekMinutesUsed(dateStr) + minutesOn(dateStr)));
-  var used = minutesOn(dateStr);
+  queue.forEach(function(q){ keep(q.task, q.origin); });
+  plan.tasks.forEach(function(t){ if (t.type !== 'record') keep(t, d); });
+  return out;
+}
+
+function buildDayPlan(d, queue, idx){
+  var asOf = d;
+  var used = idxMinutes(idx, d);
+  var limit = Math.min(dayLimit(d), Math.max(0, CFG.weekLimit - idxWeekMinutes(idx, d) + used));
   var budget = Math.max(0, limit);
-  var tasks = [], deferred = [];
+  var tasks = [], deferred = [], seen = {};
 
   function add(task){
+    var k = planTaskKey(task.kind, task.unitId, task.step);
+    if (seen[k]) return false;                   // 같은 단원·같은 복습 단계가 하루에 두 번 나오지 않게
+    seen[k] = 1;
     if (task.minutes <= budget) { tasks.push(task); budget -= task.minutes; return true; }
     deferred.push(task);
     return false;
   }
 
-  var items = reviewItems(dateStr, asOf);
-  var todays = items.filter(function(i){ return i.status === 'today'; });
-  var lates = items.filter(function(i){ return i.status === 'late'; })
-                   .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
-                   .slice(0, CFG.maxOverduePerDay);
+  // ① 전날까지 못 한 과제가 먼저 올라온다
+  var carriedSubjects = {};
+  queue.forEach(function(q){
+    var b = q.task;
+    if (!b || !b.unitId) return;
+    if (planDoneBy(idx, b, d, true)) return;     // 그날 시작 전에 이미 기록이 있으면 안 올라온다
+    if (b.kind === 'study') carriedSubjects[b.subject] = 1;
+    add({
+      id: b.id, type: b.type, kind: b.kind, subject: b.subject, unitId: b.unitId,
+      step: b.step || null, label: b.label, minutes: b.minutes, title: b.title,
+      detail: b.kind === 'review' ? b.detail
+        : b.detail + ' · ' + fmtShort(q.origin) + '에 못 한 거라 오늘 먼저 올라왔어',
+      badge: '이월', carried: q.origin
+    });
+  });
 
-  todays.forEach(function(it){
+  // ② 그날 예정 복습 → ③ 밀린 복습(하루 최대 2건)
+  var items = reviewItemsIdx(idx, d, asOf);
+  items.filter(function(i){ return i.status === 'today'; }).forEach(function(it){
     add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
           subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
           minutes: CFG.reviewMin[it.step],
           title: 'D+' + it.step + ' 복습 · ' + unitById(it.unitId).secTitle,
           detail: reviewTaskDetail(it), badge: it.weak ? '보충 필요' : '' });
   });
-  lates.forEach(function(it){
+  items.filter(function(i){ return i.status === 'late'; })
+       .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
+       .slice(0, CFG.maxOverduePerDay)
+       .forEach(function(it){
     add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
           subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
           minutes: CFG.reviewMin[it.step],
@@ -1148,19 +1269,11 @@ function planFor(dateStr){
           badge: '지연' });
   });
 
-  // 재배치해 둔 미완료 과제 (직접 '오늘로' 가져온 것만)
-  (loadState().carry[dateStr] || []).forEach(function(t){
-    add({ id: t.id, type: 'carry', kind: t.kind === 'review' ? 'review' : 'study',
-          subject: t.subject, unitId: t.unitId, step: t.step || null, label: t.label,
-          minutes: t.minutes, title: t.title, detail: t.detail, badge: '재배치' });
-  });
-
-  // 신규 진도 — 요일 배분 (과목당 하루 2단원까지, 배분 순서를 돌아가며)
-  // 하루 한도가 짧으면 그날 배분의 앞 과목만 계속 잡혀 뒤 과목이 영영 밀리므로,
-  // 주마다 그날 배분의 시작 과목을 한 칸씩 돌린다(그날 과목 구성은 그대로).
-  var alloc = (CFG.alloc[weekdayOf(dateStr)] || []).slice();
+  // ④ 그날 요일의 신규 진도 (과목당 하루 2단원까지, 배분 시작 과목은 주마다 회전)
+  //    이월된 과제가 있는 과목은 신규를 넣지 않고 다음 날로 미룬다.
+  var alloc = (CFG.alloc[weekdayOf(d)] || []).slice();
   if (alloc.length > 1) {
-    var weekIdx = Math.max(0, Math.floor(diffDays(CFG.start, weekStartOf(dateStr)) / 7));
+    var weekIdx = Math.max(0, Math.floor(diffDays(CFG.start, weekStartOf(d)) / 7));
     var shift = ((weekIdx % alloc.length) + alloc.length) % alloc.length;
     alloc = alloc.slice(shift).concat(alloc.slice(0, shift));
   }
@@ -1169,11 +1282,12 @@ function planFor(dateStr){
   for (var round = 0; round < ROUNDS; round++) {
     for (var ai = 0; ai < alloc.length; ai++) {
       var sid = alloc[ai];
-      var u = nextUnitFor(sid, assigned, asOf);
+      if (carriedSubjects[sid]) continue;
+      var u = nextUnitForIdx(idx, sid, assigned, asOf);
       if (!u) continue;
       assigned[u.id] = 1;
-      var head = (round === 0 && doneUnits(sid, asOf) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
-      add({ id: 'new:' + u.id + '@' + dateStr, type: 'new', kind: 'study',
+      var head = (round === 0 && idxDoneUnits(idx, sid, asOf) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
+      add({ id: 'new:' + u.id + '@' + d, type: 'new', kind: 'study',
             subject: sid, unitId: u.id, label: u.label,
             minutes: CFG.unitMin[sid],
             title: SUBJ_MAP[sid].short + head + u.secTitle,
@@ -1181,41 +1295,72 @@ function planFor(dateStr){
     }
   }
 
-  // 취약 보충
-  var weak = weakUnits(asOf).filter(function(uid){
-    var today = recordsOn(dateStr).some(function(r){ return r.unitId === uid; });
+  // ⑤ 취약 보충
+  var weak = idxWeakUnits(idx, asOf).filter(function(uid){
+    var today = idxRecords(idx, d).some(function(r){ return r.unitId === uid; });
     return !today;
   });
   weak.slice(0, 1).forEach(function(uid){
     var u = unitById(uid);
     if (!u) return;
-    add({ id: 'weak:' + uid + '@' + dateStr, type: 'weak', kind: 'study',
+    add({ id: 'weak:' + uid + '@' + d, type: 'weak', kind: 'study',
           subject: u.subject, unitId: uid, label: u.label, minutes: CFG.weakMin,
           title: '취약 보충 · ' + u.secTitle,
           detail: '쉬운 개념 카드 읽고 → 책 덮고 콩트·마르크스·베버·뒤르켐 한 문장씩 설명 → 막히는 사람만 카드 다시 보기',
           badge: '취약' });
   });
 
-  // 오늘 이미 한 것(체크·기록)은 목록에서 빼지 않고 체크된 상태로 남긴다
-  tasks.forEach(function(t){ t.done = taskDone(t, dateStr); });
-  // 계획에 없던 단원을 그날 기록했다면 목록 끝에 '기록' 줄로도 보여 준다
-  recordsOn(dateStr).forEach(function(r){
-    var covered = tasks.some(function(t){ return recordMatchesTask(r, t); });
+  // 그날 이미 한 것(체크·기록)은 목록에서 빼지 않고 체크된 상태로 남긴다
+  tasks.forEach(function(t){ t.done = planDoneOn(idx, t, d); });
+  idxRecords(idx, d).forEach(function(r){
+    var covered = tasks.some(function(t){ return t.type !== 'record' && recordMatchesTask(r, t); });
     if (covered) return;
     tasks.push(recordRow(r));
   });
-  // 이미 한 단원은 '오늘 시간 밖' 목록에서도 빠진다
   deferred = deferred.filter(function(t){
-    return !recordsOn(dateStr).some(function(r){ return recordMatchesTask(r, t); });
+    return !idxRecords(idx, d).some(function(r){ return recordMatchesTask(r, t); });
   });
 
   var total = tasks.reduce(function(a, t){ return a + (t.type === 'record' ? 0 : t.minutes); }, 0);
   var open = tasks.reduce(function(a, t){ return a + (t.type === 'record' || t.done ? 0 : t.minutes); }, 0);
-  return {
-    date: dateStr, day: dayNumber(dateStr), limit: limit, used: used,
+  var plan = {
+    date: d, day: dayNumber(d), limit: limit, used: used,
     remaining: Math.max(0, limit - used), total: total, open: open, tasks: tasks,
     deferred: deferred, subjects: names, weak: weak
   };
+  plan.next = nextCarryQueue(queue, plan, d, idx);
+  return plan;
+}
+
+function planFor(dateStr){
+  // 시작일 전날까지는 계획을 만들지 않고 '준비 화면'용 값을 돌려준다.
+  if (beforeStart(dateStr)) {
+    return {
+      date: dateStr, day: dayNumber(dateStr), beforeStart: true,
+      limit: 0, used: minutesOn(dateStr), remaining: 0, total: 0,
+      tasks: [], deferred: [], subjects: [], weak: [], next: [],
+      preview: planFor(CFG.start)
+    };
+  }
+  var sig = planStateSig();
+  if (planMemo.sig !== sig) planMemo = { sig: sig, map: {} };
+  if (planMemo.map[dateStr]) return planMemo.map[dateStr];
+
+  var idx = planIndex();
+  var queue = [];
+  var span = diffDays(CFG.start, dateStr);
+  if (span < 0) span = 0;
+  if (span > 1500) span = 1500;
+  var plan = null;
+  for (var i = 0; i <= span; i++) {
+    var d = addDays(CFG.start, i);
+    var cached = planMemo.map[d];
+    if (cached) { plan = cached; queue = cached.next; continue; }
+    plan = buildDayPlan(d, queue, idx);
+    planMemo.map[d] = plan;
+    queue = plan.next;
+  }
+  return planMemo.map[dateStr] || plan;
 }
 
 /* ---------- 체크 ↔ 기록 연결 ---------- */
@@ -1386,7 +1531,8 @@ function briefingText(dateStr){
   L.push('[신규 진도]');
   if (!news.length) L.push('- 오늘은 신규 진도 없이 복습만');
   news.forEach(function(t){
-    L.push('- ' + SUBJ_MAP[t.subject].name + ' · ' + t.label + ' (' + t.minutes + '분)' + (t.type === 'weak' ? ' [취약 보충]' : ''));
+    L.push('- ' + SUBJ_MAP[t.subject].name + ' · ' + t.label + ' (' + t.minutes + '분)'
+      + (t.type === 'weak' ? ' [취약 보충]' : '') + (t.carried ? ' [이월]' : ''));
     L.push('  → ' + t.detail);
   });
   L.push('');
@@ -1401,10 +1547,10 @@ function briefingText(dateStr){
   L.push('- 정답률 70% 미만이거나 이해도 2점 이하 → 다음 계획에서 신규 진도 줄이고 보충');
   L.push('');
   L.push('[체크리스트]');
-  p.tasks.forEach(function(t){ L.push('- [' + (t.done ? 'x' : ' ') + '] ' + t.title + ' (' + t.minutes + '분)'); });
+  p.tasks.forEach(function(t){ L.push('- [' + (t.done ? 'x' : ' ') + '] ' + (t.carried ? '[이월] ' : '') + t.title + ' (' + t.minutes + '분)'); });
   if (p.deferred.length) {
     L.push('');
-    L.push('[오늘 시간 밖 → 후속 일정]');
+    L.push('[오늘 시간 밖 → 내일 먼저 올라옴]');
     p.deferred.forEach(function(t){ L.push('- ' + t.title + ' (' + t.minutes + '분)'); });
   }
   return L.join('\n');
@@ -1550,10 +1696,6 @@ function renderPreStart(dateStr, p, isReal){
   $('conceptList').innerHTML = cardHTML;
   $('weakCard').classList.toggle('hidden', !cardHTML);
 
-  var carryEl = $('carryCard');
-  carryEl.classList.add('hidden');
-  carryEl._carry = [];
-
   // 브리핑: 내일(Day 1) 브리핑을 그대로 보여 준다
   var txt = briefingText(CFG.start);
   $('briefPreview').textContent = txt;
@@ -1624,7 +1766,9 @@ function renderToday(){
       steps = '<p class="steps-line"><b>①</b>책 덮고 회상 <b>②</b>주요 용어·학자 <b>③</b>차이 비교 <b>④</b>문제풀이 <b>⑤</b>오답 분석</p>';
     }
     var badge = t.badge
-      ? '<span class="badge ' + (t.badge === '취약' ? 'b-weak' : (t.badge === '기록' ? 'b-done' : 'b-late')) + '">' + esc(t.badge) + '</span>'
+      ? '<span class="badge ' + (t.badge === '취약' ? 'b-weak'
+          : t.badge === '기록' ? 'b-done'
+          : t.badge === '이월' ? 'b-carry' : 'b-late') + '">' + esc(t.badge) + '</span>'
       : '';
     html += '<div class="task" data-id="' + esc(t.id) + '" data-checked="' + on + '"'
       + (t.locked ? ' data-locked="1"' : '') + ' role="checkbox" tabindex="0" aria-checked="' + (on ? 'true' : 'false') + '"'
@@ -1642,9 +1786,10 @@ function renderToday(){
   $('taskSum').textContent = p.total ? '· 계획 ' + p.total + '분 / ' + p.limit + '분' : '';
   if (p.deferred.length) {
     $('deferNote').classList.remove('hidden');
-    $('deferNote').textContent = '시간이 넘쳐서 오늘 넣지 않은 것: '
-      + p.deferred.map(function(t){ return t.title; }).join(', ')
-      + ' → 내일 몰아서 넣지 않고 우선순위 보고 다시 배치할게.';
+    var dnames = p.deferred.slice(0, 2).map(function(t){ return t.title.split(' · ')[0]; });
+    $('deferNote').textContent = '오늘 ' + p.limit + '분에 다 넣지 못한 과제: '
+      + (p.deferred.length > 2 ? p.deferred.length + '건' : dnames.join(' · '))
+      + ' → 내일로 넘어가 목록 맨 앞에 올라와. 몰아서 하지 않아도 돼.';
   } else {
     $('deferNote').classList.add('hidden');
   }
@@ -1672,35 +1817,6 @@ function renderToday(){
   });
   $('conceptList').innerHTML = cardHTML;
   $('weakCard').classList.toggle('hidden', !cardHTML);
-
-  // 밀린 과제 — 실제로 체크리스트를 본 날(체크 기록이 있는 날)만 대상
-  var carry = [];
-  var carriedIds = {};
-  (p.tasks || []).forEach(function(t){ carriedIds[t.id] = 1; });
-  Object.keys(loadState().checks).forEach(function(dstr){
-    if (dstr >= dateStr || dstr < CFG.start) return;
-    if (diffDays(dstr, dateStr) > 7) return;
-    var pp = planFor(dstr);
-    var cc = loadState().checks[dstr] || {};
-    pp.tasks.forEach(function(t){
-      if (carriedIds[t.id]) return;
-      if (cc[t.id]) return;
-      if (recordsOn(dstr).some(function(r){ return r.unitId === t.unitId; })) return;
-      carry.push({ date: dstr, task: t });
-    });
-  });
-  if (carry.length) {
-    $('carryCard').classList.remove('hidden');
-    $('carryList').innerHTML = carry.slice(0, 4).map(function(c, i){
-      return '<div class="rec"><div class="rec-body"><div class="rec-date">' + esc(fmtShort(c.date)) + ' 미완료</div>'
-        + '<div class="rec-title">' + esc(c.task.title) + '</div>'
-        + '<div class="rec-sub">' + c.task.minutes + '분 · 오늘 남은 시간 ' + p.remaining + '분</div></div>'
-        + '<div class="rec-side"><button class="icon-btn" data-carry="' + i + '">오늘로</button></div></div>';
-    }).join('');
-    $('carryCard')._carry = carry;
-  } else {
-    $('carryCard').classList.add('hidden');
-  }
 
   // 브리핑 텍스트
   var txt = briefingText(dateStr);
@@ -2105,30 +2221,6 @@ function bind(){
     var c = e.target.closest ? e.target.closest('.concept') : null;
     if (!c) return;
     c.setAttribute('data-open', c.getAttribute('data-open') === '1' ? '0' : '1');
-  });
-
-  // 밀린 과제 → 오늘로
-  $('carryList').addEventListener('click', function(e){
-    var b = e.target.closest ? e.target.closest('[data-carry]') : null;
-    if (!b) return;
-    var carry = $('carryCard')._carry || [];
-    var it = carry[Number(b.getAttribute('data-carry'))];
-    if (!it) return;
-    var p = planFor(currentView());
-    if (it.task.minutes > p.remaining) {
-      toast('오늘 남은 시간(' + p.remaining + '분)이 모자라. 다음 주말로 넘길게');
-      return;
-    }
-    var st = loadState();
-    var day = currentView();
-    st.carry[day] = (st.carry[day] || []).concat([{
-      id: it.task.id, kind: it.task.kind, subject: it.task.subject, unitId: it.task.unitId,
-      step: it.task.step || null, label: it.task.label, minutes: it.task.minutes,
-      title: it.task.title, detail: it.task.detail
-    }]);
-    saveState();
-    renderToday();
-    toast('오늘 계획에 넣었어');
   });
 
   // 브리핑
