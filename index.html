@@ -146,6 +146,23 @@
   .steps-line{ margin:7px 0 0; font-size:11px; color:#8F9A8B; line-height:1.55; letter-spacing:-0.01em; }
   .steps-line b{ font-weight:800; color:#7E9B80; margin-right:1px; }
   .task-note{ margin:8px 0 0; font-size:11.5px; color:#9A7B52; background:var(--sand-soft); border-radius:12px; padding:8px 10px; line-height:1.5; }
+  /* ---------- 오늘 복습 (시간 예산 밖 참고 목록) ---------- */
+  .rev-row{
+    display:flex; align-items:center; gap:7px; padding:9px 10px; border-radius:13px;
+    background:#FBFAF5; border:1px solid rgba(126,155,128,.10); margin-bottom:6px;
+    cursor:pointer; -webkit-user-select:none; user-select:none;
+  }
+  .rev-row:last-child{ margin-bottom:0; }
+  .rev-row:active{ transform:scale(.995); }
+  .rev-row .cb{ width:18px; height:18px; border-radius:6px; font-size:11px; margin-top:0; flex:0 0 auto; }
+  .rev-row .tag{ flex:0 0 auto; }
+  .rev-row .badge{ flex:0 0 auto; }
+  .rev-row[data-checked="1"]{ background:#F3F6EE; }
+  .rev-row[data-checked="1"] .cb{ background:var(--sage); border-color:var(--sage); }
+  .rev-row[data-checked="1"] .cb::after{ opacity:1; }
+  .rev-row .rr-title{ flex:1 1 auto; font-size:12.5px; font-weight:750; letter-spacing:-0.02em; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rev-row[data-checked="1"] .rr-title{ color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
+  .rev-row .rr-min{ margin-left:auto; font-size:11px; font-weight:800; color:var(--sage-deep); white-space:nowrap; flex:0 0 auto; }
 
   /* ---------- concept cards ---------- */
   .concept-wrap{ display:grid; gap:8px; }
@@ -357,6 +374,12 @@
         <h3><span id="taskTitle">오늘 계획</span> <span class="muted small" id="taskSum" style="font-weight:600"></span></h3>
         <div id="taskList"></div>
         <p class="task-note hidden" id="deferNote"></p>
+      </div>
+
+      <div class="card" id="revTodayCard" hidden>
+        <h3>🔁 오늘 복습 <span class="muted small" id="revTodaySum" style="font-weight:600"></span></h3>
+        <p class="muted small" id="offBudgetNote" style="margin:-4px 0 10px"></p>
+        <div id="revTodayList"></div>
       </div>
 
       <div class="card" id="weakCard">
@@ -609,7 +632,13 @@ var CFG = {
   reviewMin: { 1: 7, 3: 8, 7: 10, 14: 12, 30: 15 },
   reviewSteps: [1, 3, 7, 14, 30],
   weakMin: 15,
-  maxOverduePerDay: 2
+  maxOverduePerDay: 2,
+  // 복습은 간격복습 플래시카드 앱(yunseodo08-eng.github.io/-/cards/)에서 돌린다.
+  // 플래너에서는 오늘 할 복습을 참고 목록으로만 보여 주고, 신규 진도 시간 예산(평일 30·주말 90분)은 깎지 않는다.
+  reviewOffBudget: true,
+  // 그날 요일 배분(alloc)은 '무엇을 먼저 볼지' 우선순위로만 쓰고,
+  // 시간이 남으면 아직 단원이 남은 다른 과목을 이어서 채운다(과목당 하루 단원 수 제한 없음).
+  fillRemaining: true
 };
 
 var WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -1162,6 +1191,12 @@ function newTaskDetail(u){
 function reviewTaskDetail(it){
   return unitHead(unitById(it.unitId)).replace(/ · $/, '');
 }
+// 과제 시간 표시 — 복습은 시간 예산 밖이라 실제 예상 시간을 '약 7분 · 예산 밖'으로 보여 준다
+function taskMinLabel(t){
+  if (!t) return '0분';
+  if (t.offBudget) return '약 ' + (t.estMin || 0) + '분 · 예산 밖';
+  return t.minutes + '분';
+}
 
 /* ---------- 미완료 과제 자동 이월 ----------
    계획은 '그날을 시작할 때의 기록'(asOf = 그날)으로만 짠다. 그래야 그날 홈에서 체크·기록을 해도
@@ -1205,6 +1240,7 @@ function nextCarryQueue(queue, plan, d, idx){
   var out = [], seen = {};
   function keep(t, origin){
     if (!t || !t.unitId) return;
+    if (t.kind === 'review') return;             // 복습은 다음 날 '오늘/지연 복습'으로 다시 계산되니 목록에 쌓지 않는다
     var k = planTaskKey(t.kind, t.unitId, t.step);
     if (seen[k]) return;
     if (planDoneBy(idx, t, d)) return;           // 이미 한 단원·복습 단계는 다시 이월하지 않는다
@@ -1242,6 +1278,7 @@ function buildDayPlan(d, queue, idx){
     add({
       id: b.id, type: b.type, kind: b.kind, subject: b.subject, unitId: b.unitId,
       step: b.step || null, label: b.label, minutes: b.minutes, title: b.title,
+      estMin: b.estMin || null, offBudget: !!b.offBudget,
       detail: b.kind === 'review' ? b.detail
         : b.detail + ' · ' + fmtShort(q.origin) + '에 못 한 거라 오늘 먼저 올라왔어',
       badge: '이월', carried: q.origin
@@ -1249,13 +1286,15 @@ function buildDayPlan(d, queue, idx){
   });
 
   // ② 그날 예정 복습 → ③ 밀린 복습(하루 최대 2건)
+  //    복습은 플래시카드 앱에서 돌리는 '참고 일정'이라 신규 진도 시간 예산을 깎지 않는다(0분).
+  //    목록에는 그대로 두어서 체크하면 복습 완료 기록이 생기고 복습 완료율에 반영된다.
   var items = reviewItemsIdx(idx, d, asOf);
   items.filter(function(i){ return i.status === 'today'; }).forEach(function(it){
     add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
           subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
-          minutes: CFG.reviewMin[it.step],
+          minutes: 0, estMin: CFG.reviewMin[it.step], offBudget: true,
           title: 'D+' + it.step + ' 복습 · ' + unitById(it.unitId).secTitle,
-          detail: reviewTaskDetail(it), badge: it.weak ? '보충 필요' : '' });
+          detail: reviewTaskDetail(it) + ' · 플래시카드 앱에서 돌리기', badge: it.weak ? '보충 필요' : '' });
   });
   items.filter(function(i){ return i.status === 'late'; })
        .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
@@ -1263,39 +1302,13 @@ function buildDayPlan(d, queue, idx){
        .forEach(function(it){
     add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
           subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
-          minutes: CFG.reviewMin[it.step],
+          minutes: 0, estMin: CFG.reviewMin[it.step], offBudget: true,
           title: '밀린 D+' + it.step + ' 복습 · ' + unitById(it.unitId).secTitle,
-          detail: reviewTaskDetail(it) + ' (원래 ' + fmtShort(it.due) + ' 예정)',
+          detail: reviewTaskDetail(it) + ' (원래 ' + fmtShort(it.due) + ' 예정) · 플래시카드 앱에서 돌리기',
           badge: '지연' });
   });
 
-  // ④ 그날 요일의 신규 진도 (과목당 하루 2단원까지, 배분 시작 과목은 주마다 회전)
-  //    이월된 과제가 있는 과목은 신규를 넣지 않고 다음 날로 미룬다.
-  var alloc = (CFG.alloc[weekdayOf(d)] || []).slice();
-  if (alloc.length > 1) {
-    var weekIdx = Math.max(0, Math.floor(diffDays(CFG.start, weekStartOf(d)) / 7));
-    var shift = ((weekIdx % alloc.length) + alloc.length) % alloc.length;
-    alloc = alloc.slice(shift).concat(alloc.slice(0, shift));
-  }
-  var names = alloc.map(function(id){ return SUBJ_MAP[id].short; });
-  var ROUNDS = 2, assigned = {};
-  for (var round = 0; round < ROUNDS; round++) {
-    for (var ai = 0; ai < alloc.length; ai++) {
-      var sid = alloc[ai];
-      if (carriedSubjects[sid]) continue;
-      var u = nextUnitForIdx(idx, sid, assigned, asOf);
-      if (!u) continue;
-      assigned[u.id] = 1;
-      var head = (round === 0 && idxDoneUnits(idx, sid, asOf) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
-      add({ id: 'new:' + u.id + '@' + d, type: 'new', kind: 'study',
-            subject: sid, unitId: u.id, label: u.label,
-            minutes: CFG.unitMin[sid],
-            title: SUBJ_MAP[sid].short + head + u.secTitle,
-            detail: newTaskDetail(u), badge: '' });
-    }
-  }
-
-  // ⑤ 취약 보충
+  // ③-2 취약 보충 (15분) — 밀린 것부터 보수하는 게 먼저라 신규 진도보다 앞에 둔다
   var weak = idxWeakUnits(idx, asOf).filter(function(uid){
     var today = idxRecords(idx, d).some(function(r){ return r.unitId === uid; });
     return !today;
@@ -1309,6 +1322,49 @@ function buildDayPlan(d, queue, idx){
           detail: '쉬운 개념 카드 읽고 → 책 덮고 콩트·마르크스·베버·뒤르켐 한 문장씩 설명 → 막히는 사람만 카드 다시 보기',
           badge: '취약' });
   });
+
+  // ④ 그날 요일의 신규 진도 — CFG.alloc은 '무엇을 먼저 볼지' 우선순위로만 쓰고
+  //    (배분 시작 과목은 주마다 회전), 끝난 과목·남는 시간은 미완료 단원이 남은 과목으로 채운다.
+  var alloc = (CFG.alloc[weekdayOf(d)] || []).slice();
+  if (alloc.length > 1) {
+    var weekIdx = Math.max(0, Math.floor(diffDays(CFG.start, weekStartOf(d)) / 7));
+    var shift = ((weekIdx % alloc.length) + alloc.length) % alloc.length;
+    alloc = alloc.slice(shift).concat(alloc.slice(0, shift));
+  }
+  var names = alloc.map(function(id){ return SUBJ_MAP[id].short; });
+
+  // 남은 단원이 많은 과목부터 자동으로 이어서 배정한다(사회학개론 77절·한국사 40강 등)
+  var need = [];
+  SUBJECTS.forEach(function(s){
+    if (alloc.indexOf(s.id) >= 0) return;
+    var left = s.units.length - idxDoneUnits(idx, s.id, asOf);
+    if (left > 0) need.push({ id: s.id, left: left, at: SUBJECTS.indexOf(s) });
+  });
+  need.sort(function(a, b){ return (b.left - a.left) || (a.at - b.at); });
+  var order = alloc.concat(need.map(function(x){ return x.id; }));
+
+  // ④ 그날 요일의 신규 진도 — 우선순위대로 한 바퀴씩 돌면서, 시간이 남는 만큼 계속 채운다
+  //    (과목당 하루 단원 수 제한 없음. 하루 예산 안에서 남는 단원을 채운다.)
+  var assigned = {};
+  for (var round = 0; round < 8; round++) {
+    var gotInRound = 0;
+    for (var ai = 0; ai < order.length; ai++) {
+      var sid = order[ai];
+      if (carriedSubjects[sid]) continue;          // 이월된 과목은 그 단원부터 끝내고 이어진다
+      var u = nextUnitForIdx(idx, sid, assigned, asOf);
+      if (!u) continue;
+      var mins = CFG.unitMin[sid];
+      if (mins > budget) continue;                 // 오늘 남은 시간에 안 들어가면 다음 과목/다음 날로
+      assigned[u.id] = 1;
+      var head = (round === 0 && idxDoneUnits(idx, sid, asOf) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
+      if (add({ id: 'new:' + u.id + '@' + d, type: 'new', kind: 'study',
+                subject: sid, unitId: u.id, label: u.label,
+                minutes: mins,
+                title: SUBJ_MAP[sid].short + head + u.secTitle,
+                detail: newTaskDetail(u), badge: '' })) gotInRound++;
+    }
+    if (!gotInRound) break;
+  }
 
   // 그날 이미 한 것(체크·기록)은 목록에서 빼지 않고 체크된 상태로 남긴다
   tasks.forEach(function(t){ t.done = planDoneOn(idx, t, d); });
@@ -1438,7 +1494,8 @@ function toggleTask(id, dateStr){
   }
   saveState();
   renderAll();
-  toast((dup ? '이미 기록에 있어' : t.minutes + '분 반영') + ' · ' + (t.kind === 'review' ? '복습' : '진도') + ' 완료');
+  toast((dup ? '이미 기록에 있어' : (t.offBudget ? '시간 예산 밖' : t.minutes + '분 반영'))
+    + ' · ' + (t.kind === 'review' ? '복습' : '진도') + ' 완료');
 }
 // 예전 버전에서 checks만 켜져 있던 데이터를 기록으로 옮겨 준다(한 번만)
 function migrateChecks(){
@@ -1476,7 +1533,8 @@ function taskFromId(id, dateStr){
     var ru = unitById(m[1]);
     if (!ru) return null;
     return { id: id, kind: 'review', subject: ru.subject, unitId: ru.id,
-             step: Number(m[2]), minutes: CFG.reviewMin[Number(m[2])] || 7, label: ru.label };
+             step: Number(m[2]), minutes: 0, estMin: CFG.reviewMin[Number(m[2])] || 7,
+             offBudget: true, label: ru.label };
   }
   m = /^new:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(id) || null;
   if (m) {
@@ -1512,7 +1570,7 @@ function briefingText(dateStr){
     L0.push('[Day 1 계획 미리 보기]');
     if (!dp.tasks.length) L0.push('- 아직 배정된 과제가 없어');
     dp.tasks.forEach(function(t){
-      L0.push('- ' + t.title + ' (' + t.minutes + '분)');
+      L0.push('- ' + t.title + ' (' + taskMinLabel(t) + ')');
       L0.push('  → ' + t.detail);
     });
     L0.push('');
@@ -1536,10 +1594,10 @@ function briefingText(dateStr){
     L.push('  → ' + t.detail);
   });
   L.push('');
-  L.push('[간격복습]');
+  L.push('[간격복습] (플래시카드 앱 · 오늘 진도 시간에 안 들어감)');
   if (!revs.length) L.push('- 오늘 예정된 복습 없음');
   revs.forEach(function(t){
-    L.push('- ' + SUBJ_MAP[t.subject].name + ' · ' + t.title + ' (' + t.minutes + '분)');
+    L.push('- ' + SUBJ_MAP[t.subject].name + ' · ' + t.title + ' (' + taskMinLabel(t) + ')');
   });
   L.push('');
   L.push('[확인문제 · 오답]');
@@ -1547,7 +1605,9 @@ function briefingText(dateStr){
   L.push('- 정답률 70% 미만이거나 이해도 2점 이하 → 다음 계획에서 신규 진도 줄이고 보충');
   L.push('');
   L.push('[체크리스트]');
-  p.tasks.forEach(function(t){ L.push('- [' + (t.done ? 'x' : ' ') + '] ' + (t.carried ? '[이월] ' : '') + t.title + ' (' + t.minutes + '분)'); });
+  var checklist = p.tasks.filter(function(t){ return !t.offBudget; })
+    .concat(p.tasks.filter(function(t){ return t.offBudget; }));
+  checklist.forEach(function(t){ L.push('- [' + (t.done ? 'x' : ' ') + '] ' + (t.carried ? '[이월] ' : '') + t.title + ' (' + taskMinLabel(t) + ')'); });
   if (p.deferred.length) {
     L.push('');
     L.push('[오늘 시간 밖 → 내일 먼저 올라옴]');
@@ -1588,7 +1648,7 @@ function weeklyText(dateStr){
   L.push('');
   L.push('[다음 주 우선순위]');
   L.push('1) 취약 단원 보충 복습 먼저');
-  L.push('2) 밀린 복습은 하루 ' + CFG.maxOverduePerDay + '건까지만');
+  L.push('2) 밀린 복습은 하루 ' + CFG.maxOverduePerDay + '건까지만 (플래시카드 앱 · 진도 시간에 안 들어감)');
   L.push('3) 신규 진도는 평일 30분 · 주말 90분 안에서');
   return L.join('\n');
 }
@@ -1671,12 +1731,13 @@ function renderPreStart(dateStr, p, isReal){
       + '<span class="cb" aria-hidden="true" style="opacity:.35;cursor:default"></span>'
       + '<div class="task-body"><div class="task-top">'
       + '<span class="tag t-' + s.tag + '">' + esc(s.short) + '</span>'
-      + '<span class="min">' + t.minutes + '분</span>'
+      + '<span class="min">' + esc(taskMinLabel(t)) + '</span>'
       + '</div><p class="task-title" style="margin:5px 0 0">' + esc(t.title) + '</p>'
       + '<p class="task-detail">' + esc(t.detail) + '</p></div></div>';
   });
   $('taskList').innerHTML = html;
   $('taskTitle').textContent = '내일 계획 미리 보기';
+  $('revTodayCard').hidden = true;
   $('taskSum').textContent = dp.total ? '· 내일 합계 ' + dp.total + '분 / ' + dp.limit + '분' : '';
   $('deferNote').classList.remove('hidden');
   $('deferNote').textContent = '오늘은 체크할 과제가 없어. 내일 열면 이 목록이 Day 1 체크리스트가 돼.';
@@ -1753,18 +1814,19 @@ function renderToday(){
   else gnote = '남은 과제 ' + p.open + '분 · 그 밖에 ' + (p.remaining - p.open) + '분은 비워 뒀어.';
   $('gaugeNote').textContent = gnote;
 
-  // 과제 — 카드 전체를 탭하면 체크/해제(미리보기 제외)
+  // 과제 — 카드 전체를 탭하면 체크/해제(미리보기 제외). 복습은 별도 참고 목록으로 뺀다
+  var studyTasks = p.tasks.filter(function(t){ return !t.offBudget; });
+  var revTasks = p.tasks.filter(function(t){ return t.offBudget; });
   var html = '';
-  if (!p.tasks.length) {
-    html = '<p class="empty">오늘 배정된 과제가 없어. 대신 지난 복습을 하나 골라 가볍게 돌아봐도 좋아.</p>';
+  if (!studyTasks.length) {
+    html = '<p class="empty">' + (revTasks.length
+      ? '오늘은 새로 나갈 단원 없이 복습만 있어. 아래 복습 목록을 돌려 주면 돼.'
+      : '오늘 배정된 과제가 없어. 대신 지난 복습을 하나 골라 가볍게 돌아봐도 좋아.') + '</p>';
   }
-  p.tasks.forEach(function(t){
+  studyTasks.forEach(function(t){
     var on = taskDone(t, dateStr) ? 1 : 0;
     var s = SUBJ_MAP[t.subject] || { short: '기타', tag: 'korean' };
     var steps = '';
-    if (t.type === 'review') {
-      steps = '<p class="steps-line"><b>①</b>책 덮고 회상 <b>②</b>주요 용어·학자 <b>③</b>차이 비교 <b>④</b>문제풀이 <b>⑤</b>오답 분석</p>';
-    }
     var badge = t.badge
       ? '<span class="badge ' + (t.badge === '취약' ? 'b-weak'
           : t.badge === '기록' ? 'b-done'
@@ -1772,18 +1834,42 @@ function renderToday(){
       : '';
     html += '<div class="task" data-id="' + esc(t.id) + '" data-checked="' + on + '"'
       + (t.locked ? ' data-locked="1"' : '') + ' role="checkbox" tabindex="0" aria-checked="' + (on ? 'true' : 'false') + '"'
-      + ' aria-label="' + esc(t.title) + ' ' + t.minutes + '분">'
+      + ' aria-label="' + esc(t.title) + ' ' + esc(taskMinLabel(t)) + '">'
       + '<span class="cb" aria-hidden="true"></span>'
       + '<div class="task-body"><div class="task-top">'
       + '<span class="tag t-' + s.tag + '">' + esc(s.short) + '</span>'
       + badge
-      + '<span class="min">' + t.minutes + '분</span>'
+      + '<span class="min">' + esc(taskMinLabel(t)) + '</span>'
       + '</div><p class="task-title" style="margin:5px 0 0">' + esc(t.title) + '</p>'
       + '<p class="task-detail">' + esc(t.detail) + '</p>' + steps + '</div></div>';
   });
   $('taskList').innerHTML = html;
   $('taskTitle').textContent = '오늘 계획';
   $('taskSum').textContent = p.total ? '· 계획 ' + p.total + '분 / ' + p.limit + '분' : '';
+
+  // 오늘 복습 — 플래시카드 앱에서 돌리는 참고 목록. 시간 예산에 안 들어간다.
+  var rhtml = '';
+  revTasks.forEach(function(t){
+    var on = taskDone(t, dateStr) ? 1 : 0;
+    var s = SUBJ_MAP[t.subject] || { short: '기타', tag: 'korean' };
+    var rbadge = t.badge
+      ? '<span class="badge ' + (t.badge === '보충 필요' ? 'b-weak' : 'b-late') + '">' + esc(t.badge) + '</span>' : '';
+    rhtml += '<div class="rev-row" data-id="' + esc(t.id) + '" data-checked="' + on + '"'
+      + ' role="checkbox" tabindex="0" aria-checked="' + (on ? 'true' : 'false') + '"'
+      + ' aria-label="' + esc(t.title) + ' 약 ' + (t.estMin || 0) + '분">'
+      + '<span class="cb" aria-hidden="true"></span>'
+      + '<span class="tag t-' + s.tag + '">' + esc(s.short) + '</span>'
+      + rbadge
+      + '<span class="rr-title">' + esc(t.title) + '</span>'
+      + '<span class="rr-min">약 ' + (t.estMin || 0) + '분</span></div>';
+  });
+  $('revTodayList').innerHTML = rhtml;
+  $('revTodayCard').hidden = !revTasks.length;
+  if (revTasks.length) {
+    var estSum = revTasks.reduce(function(a, t){ return a + (t.estMin || 0); }, 0);
+    $('revTodaySum').textContent = '· ' + revTasks.length + '건 · 약 ' + estSum + '분';
+    $('offBudgetNote').textContent = '간격복습 플래시카드 앱에서 돌려. 오늘 ' + p.limit + '분(진도 시간)에는 안 들어가.';
+  }
   if (p.deferred.length) {
     $('deferNote').classList.remove('hidden');
     var dnames = p.deferred.slice(0, 2).map(function(t){ return t.title.split(' · ')[0]; });
@@ -1910,7 +1996,7 @@ function renderRecord(){
     if (r.fromCheck) bits.push('홈 체크');
     if (r.kind === 'review') bits.push('D+' + (r.step || 1) + ' 복습');
     if (typeof r.minutes === 'number' && r.minutes > 0) bits.push(r.minutes + '분');
-    else bits.push('시간 미보고');
+    else bits.push(r.kind === 'review' ? '시간 예산 밖' : '시간 미보고');
     if (r.pages) bits.push(r.pages);
     if (typeof r.questions === 'number' && r.questions > 0) {
       bits.push('문제 ' + r.questions + '·정답 ' + (r.correct == null ? '-' : r.correct)
@@ -2214,6 +2300,21 @@ function bind(){
     if (!id) return;
     e.preventDefault();
     toggleTask(id, currentView());
+  });
+
+  // 오늘 복습 목록 — 줄을 탭하면 복습 완료(체크). 복습은 시간 예산 밖
+  function revRowHit(e){
+    var row = e.target.closest ? e.target.closest('.rev-row') : null;
+    if (!row) return;
+    var id = row.getAttribute('data-id');
+    if (!id) return;
+    e.preventDefault();
+    toggleTask(id, currentView());
+  }
+  $('revTodayList').addEventListener('click', revRowHit);
+  $('revTodayList').addEventListener('keydown', function(e){
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    revRowHit(e);
   });
 
   // 개념 카드
