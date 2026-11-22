@@ -427,7 +427,7 @@
       <div class="card">
         <h3>이번 주 공부시간</h3>
         <div class="wk" id="weekBars"></div>
-        <div class="gauge-head" style="margin-top:2px"><span id="weekUsed">0분</span><span class="left">/ 270분 (4시간 30분)</span></div>
+        <div class="gauge-head" style="margin-top:2px"><span id="weekUsed">0분</span><span class="left">/ 330분 (5시간 30분)</span></div>
         <p class="muted small" style="margin:6px 0 0" id="weekNote"></p>
       </div>
       <div class="card">
@@ -594,8 +594,8 @@
 var CFG = {
   start: '2026-11-18',            // Day 1 (수) — 그 전날까지는 '시작 전' 준비 화면
   target: '2027-02-28',
-  limits: [60, 30, 30, 30, 30, 30, 60],    // 일~토 (분) — 평일 30분 · 주말 60분
-  weekLimit: 270,                 // 주간 4시간 30분 (30×5 + 60×2)
+  limits: [90, 30, 30, 30, 30, 30, 90],    // 일~토 (분) — 평일 30분 · 주말 90분
+  weekLimit: 330,                 // 주간 5시간 30분 (30×5 + 90×2)
   alloc: {                        // 요일별 기본 배분 (getDay: 0=일)
     1: ['english'],
     2: ['korean'],
@@ -1564,7 +1564,7 @@ function weeklyText(dateStr){
     total += m;
     L.push('- ' + fmtShort(dstr) + ' ' + (m ? m + '분' : '기록 없음') + ' / ' + lim + '분');
   }
-  L.push('- 주간 합계: ' + total + '분 / ' + CFG.weekLimit + '분 (4시간 30분)');
+  L.push('- 주간 합계: ' + total + '분 / ' + CFG.weekLimit + '분 (5시간 30분)');
   L.push('');
   L.push('[과목별 진도]');
   SUBJECTS.forEach(function(s){
@@ -1589,7 +1589,7 @@ function weeklyText(dateStr){
   L.push('[다음 주 우선순위]');
   L.push('1) 취약 단원 보충 복습 먼저');
   L.push('2) 밀린 복습은 하루 ' + CFG.maxOverduePerDay + '건까지만');
-  L.push('3) 신규 진도는 평일 30분 · 주말 60분 안에서');
+  L.push('3) 신규 진도는 평일 30분 · 주말 90분 안에서');
   return L.join('\n');
 }
 function monthStats(dateStr){
@@ -1958,7 +1958,7 @@ function renderProgress(){
     var dstr = addDays(ws, i), m = minutesOn(dstr), lim = dayLimit(dstr);
     used += m;
     var h = lim ? Math.min(100, Math.round(m / lim * 100)) : 0;
-    var cap = Math.round(lim / 60 * 100);    // 한도에 따라 칸 높이를 다르게(평일 50%, 주말 100%)
+    var cap = Math.round(lim / Math.max.apply(null, CFG.limits) * 100);  // 한도에 따라 칸 높이를 다르게(평일 33%, 주말 100%)
     bars += '<div class="wk-day" data-today="' + (dstr === todayReal() ? '1' : '0') + '">'
       + '<div class="wk-bar" style="height:' + cap + '%" title="' + m + '분 / ' + lim + '분">'
       + '<i style="height:' + h + '%"></i></div>'
@@ -1969,7 +1969,7 @@ function renderProgress(){
   var wpct = Math.round(used / CFG.weekLimit * 100);
   $('weekNote').textContent = wpct >= 100
     ? '이번 주 한도(' + CFG.weekLimit + '분)를 다 채웠어. 남은 날은 복습만 가볍게 해도 충분해.'
-    : '이번 주 ' + wpct + '% · 남은 ' + (CFG.weekLimit - used) + '분. 평일 하루 30분, 주말 60분 기준이야.';
+    : '이번 주 ' + wpct + '% · 남은 ' + (CFG.weekLimit - used) + '분. 평일 하루 30분, 주말 90분 기준이야.';
 
   var left = diffDays(dateStr, CFG.target);
   var totalUnits = UNITS.length;
