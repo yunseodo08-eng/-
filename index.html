@@ -452,7 +452,7 @@
       <div class="card">
         <h3>이번 주 공부시간</h3>
         <div class="wk" id="weekBars"></div>
-        <div class="gauge-head" style="margin-top:2px"><span id="weekUsed">0분</span><span class="left">/ 330분 (5시간 30분)</span></div>
+        <div class="gauge-head" style="margin-top:2px"><span id="weekUsed">0분</span><span class="left" id="weekLimitText">/ 330분 (5시간 30분)</span></div>
         <p class="muted small" style="margin:6px 0 0" id="weekNote"></p>
       </div>
       <div class="card">
@@ -618,9 +618,14 @@
    ========================================================= */
 var CFG = {
   start: '2026-11-18',            // Day 1 (수) — 그 전날까지는 '시작 전' 준비 화면
+  cutover: '2026-11-23',          // 이날부터 새 배분 적용 (그 전날까지는 윤서 님이 원래 보던 계획 그대로)
   target: '2027-02-28',
-  limits: [90, 30, 30, 30, 30, 30, 90],    // 일~토 (분) — 평일 30분 · 주말 90분
-  weekLimit: 330,                 // 주간 5시간 30분 (30×5 + 90×2)
+  limits: [90, 30, 30, 30, 30, 30, 90],    // 새 배분 일~토 (분) — 평일 30분 · 주말 90분
+  weekLimit: 330,                 // 새 배분 주간 5시간 30분 (30×5 + 90×2)
+  // 2026-11-22까지의 기존 배분 — 오늘 화면이 바뀌지 않도록 그대로 둔다
+  limitsLegacy: [60, 30, 30, 30, 30, 30, 60],   // 일~토 (분) — 평일 30분 · 주말 60분
+  weekLimitLegacy: 270,           // 주간 4시간 30분 (30×5 + 60×2)
+  legacyRounds: 2,                // 기존: 과목당 하루 2단원까지
   alloc: {                        // 요일별 기본 배분 (getDay: 0=일)
     1: ['english'],
     2: ['korean'],
@@ -635,13 +640,21 @@ var CFG = {
   reviewSteps: [1, 3, 7, 14, 30],
   weakMin: 15,
   maxOverduePerDay: 2,
-  // 복습은 간격복습 플래시카드 앱(yunseodo08-eng.github.io/-/cards/)에서 돌린다.
+  // 새 배분(cutover 이후)에서는 복습을 간격복습 플래시카드 앱(yunseodo08-eng.github.io/-/cards/)에서 돌린다.
   // 플래너에서는 오늘 할 복습을 참고 목록으로만 보여 주고, 신규 진도 시간 예산(평일 30·주말 90분)은 깎지 않는다.
   reviewOffBudget: true,
-  // 그날 요일 배분(alloc)은 '무엇을 먼저 볼지' 우선순위로만 쓰고,
+  // 새 배분에서는 그날 요일 배분(alloc)을 '무엇을 먼저 볼지' 우선순위로만 쓰고,
   // 시간이 남으면 아직 단원이 남은 다른 과목을 이어서 채운다(과목당 하루 단원 수 제한 없음).
   fillRemaining: true
 };
+
+// 2026-11-22까지는 기존 방식, 2026-11-23부터는 새 배분
+function isNewPlan(dateStr){ return dateStr >= CFG.cutover; }
+function weekLimitFor(dateStr){ return isNewPlan(dateStr) ? CFG.weekLimit : CFG.weekLimitLegacy; }
+function limitSpanText(minutes){
+  var h = Math.floor(minutes / 60), m = minutes % 60;
+  return (h ? h + '시간' : '') + (h && m ? ' ' : '') + (m || !h ? m + '분' : '');
+}
 
 var WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -1148,7 +1161,9 @@ function reviewDoneRate(uptoDate){
 /* =========================================================
    6. 오늘 계획 생성
    ========================================================= */
-function dayLimit(dateStr){ return CFG.limits[weekdayOf(dateStr)]; }
+function dayLimit(dateStr){
+  return (isNewPlan(dateStr) ? CFG.limits : CFG.limitsLegacy)[weekdayOf(dateStr)];
+}
 function weekStartOf(dateStr){
   var wd = weekdayOf(dateStr);          // 0=일
   var back = (wd + 6) % 7;              // 월요일까지 거슬러
@@ -1242,7 +1257,8 @@ function nextCarryQueue(queue, plan, d, idx){
   var out = [], seen = {};
   function keep(t, origin){
     if (!t || !t.unitId) return;
-    if (t.kind === 'review') return;             // 복습은 다음 날 '오늘/지연 복습'으로 다시 계산되니 목록에 쌓지 않는다
+    // 새 배분 날짜로 넘어가면 복습은 이월하지 않는다 — 다음 날 '오늘/지연 복습'으로 다시 계산된다
+    if (t.kind === 'review' && isNewPlan(addDays(d, 1))) return;
     var k = planTaskKey(t.kind, t.unitId, t.step);
     if (seen[k]) return;
     if (planDoneBy(idx, t, d)) return;           // 이미 한 단원·복습 단계는 다시 이월하지 않는다
@@ -1256,8 +1272,9 @@ function nextCarryQueue(queue, plan, d, idx){
 
 function buildDayPlan(d, queue, idx){
   var asOf = d;
+  var fresh = isNewPlan(d);                  // 11/23부터 새 배분
   var used = idxMinutes(idx, d);
-  var limit = Math.min(dayLimit(d), Math.max(0, CFG.weekLimit - idxWeekMinutes(idx, d) + used));
+  var limit = Math.min(dayLimit(d), Math.max(0, weekLimitFor(d) - idxWeekMinutes(idx, d) + used));
   var budget = Math.max(0, limit);
   var tasks = [], deferred = [], seen = {};
 
@@ -1288,15 +1305,17 @@ function buildDayPlan(d, queue, idx){
   });
 
   // ② 그날 예정 복습 → ③ 밀린 복습(하루 최대 2건)
-  //    복습은 플래시카드 앱에서 돌리는 '참고 일정'이라 신규 진도 시간 예산을 깎지 않는다(0분).
-  //    목록에는 그대로 두어서 체크하면 복습 완료 기록이 생기고 복습 완료율에 반영된다.
+  //    새 배분(11/23~)에서는 복습이 플래시카드 앱에서 돌리는 '참고 일정'이라 신규 진도 시간 예산을 깎지 않는다(0분).
+  //    기존 날짜(11-22까지)에서는 예전처럼 복습 시간이 그날 예산에 들어간다.
   var items = reviewItemsIdx(idx, d, asOf);
+  function revMinutes(it){ return fresh ? 0 : CFG.reviewMin[it.step]; }
   items.filter(function(i){ return i.status === 'today'; }).forEach(function(it){
     add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
           subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
-          minutes: 0, estMin: CFG.reviewMin[it.step], offBudget: true,
+          minutes: revMinutes(it), estMin: CFG.reviewMin[it.step], offBudget: fresh,
           title: 'D+' + it.step + ' 복습 · ' + unitById(it.unitId).secTitle,
-          detail: reviewTaskDetail(it) + ' · 플래시카드 앱에서 돌리기', badge: it.weak ? '보충 필요' : '' });
+          detail: reviewTaskDetail(it) + (fresh ? ' · 플래시카드 앱에서 돌리기' : ''),
+          badge: it.weak ? '보충 필요' : '' });
   });
   items.filter(function(i){ return i.status === 'late'; })
        .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
@@ -1304,26 +1323,30 @@ function buildDayPlan(d, queue, idx){
        .forEach(function(it){
     add({ id: 'rev:' + it.unitId + ':' + it.step + ':' + it.due, type: 'review', kind: 'review',
           subject: it.subject, unitId: it.unitId, step: it.step, due: it.due, label: it.label,
-          minutes: 0, estMin: CFG.reviewMin[it.step], offBudget: true,
+          minutes: revMinutes(it), estMin: CFG.reviewMin[it.step], offBudget: fresh,
           title: '밀린 D+' + it.step + ' 복습 · ' + unitById(it.unitId).secTitle,
-          detail: reviewTaskDetail(it) + ' (원래 ' + fmtShort(it.due) + ' 예정) · 플래시카드 앱에서 돌리기',
+          detail: reviewTaskDetail(it) + ' (원래 ' + fmtShort(it.due) + ' 예정)'
+            + (fresh ? ' · 플래시카드 앱에서 돌리기' : ''),
           badge: '지연' });
   });
 
-  // ③-2 취약 보충 (15분) — 밀린 것부터 보수하는 게 먼저라 신규 진도보다 앞에 둔다
+  // ③-2 취약 보충 (15분) — 새 배분에서는 밀린 것부터 보수하는 게 먼저라 신규 진도보다 앞에 두고,
+  //      기존 날짜에서는 예전 순서대로 신규 진도 뒤에 붙인다.
   var weak = idxWeakUnits(idx, asOf).filter(function(uid){
     var today = idxRecords(idx, d).some(function(r){ return r.unitId === uid; });
     return !today;
   });
-  weak.slice(0, 1).forEach(function(uid){
-    var u = unitById(uid);
-    if (!u) return;
-    add({ id: 'weak:' + uid + '@' + d, type: 'weak', kind: 'study',
-          subject: u.subject, unitId: uid, label: u.label, minutes: CFG.weakMin,
-          title: '취약 보충 · ' + u.secTitle,
-          detail: '쉬운 개념 카드 읽고 → 책 덮고 콩트·마르크스·베버·뒤르켐 한 문장씩 설명 → 막히는 사람만 카드 다시 보기',
-          badge: '취약' });
-  });
+  var weakPending = weak.slice(0, 1).map(function(uid){ return unitById(uid); }).filter(Boolean);
+  function addWeak(){
+    weakPending.forEach(function(u){
+      add({ id: 'weak:' + u.id + '@' + d, type: 'weak', kind: 'study',
+            subject: u.subject, unitId: u.id, label: u.label, minutes: CFG.weakMin,
+            title: '취약 보충 · ' + u.secTitle,
+            detail: '쉬운 개념 카드 읽고 → 책 덮고 콩트·마르크스·베버·뒤르켐 한 문장씩 설명 → 막히는 사람만 카드 다시 보기',
+            badge: '취약' });
+    });
+  }
+  if (fresh) addWeak();
 
   // ④ 그날 요일의 신규 진도 — CFG.alloc은 '무엇을 먼저 볼지' 우선순위로만 쓰고
   //    (배분 시작 과목은 주마다 회전), 끝난 과목·남는 시간은 미완료 단원이 남은 과목으로 채운다.
@@ -1335,20 +1358,24 @@ function buildDayPlan(d, queue, idx){
   }
   var names = alloc.map(function(id){ return SUBJ_MAP[id].short; });
 
-  // 남은 단원이 많은 과목부터 자동으로 이어서 배정한다(사회학개론 77절·한국사 40강 등)
-  var need = [];
-  SUBJECTS.forEach(function(s){
-    if (alloc.indexOf(s.id) >= 0) return;
-    var left = s.units.length - idxDoneUnits(idx, s.id, asOf);
-    if (left > 0) need.push({ id: s.id, left: left, at: SUBJECTS.indexOf(s) });
-  });
-  need.sort(function(a, b){ return (b.left - a.left) || (a.at - b.at); });
-  var order = alloc.concat(need.map(function(x){ return x.id; }));
+  var order = alloc;
+  if (fresh && CFG.fillRemaining) {
+    // 남은 단원이 많은 과목부터 자동으로 이어서 배정한다(사회학개론 77절·한국사 40강 등)
+    var need = [];
+    SUBJECTS.forEach(function(s){
+      if (alloc.indexOf(s.id) >= 0) return;
+      var left = s.units.length - idxDoneUnits(idx, s.id, asOf);
+      if (left > 0) need.push({ id: s.id, left: left, at: SUBJECTS.indexOf(s) });
+    });
+    need.sort(function(a, b){ return (b.left - a.left) || (a.at - b.at); });
+    order = alloc.concat(need.map(function(x){ return x.id; }));
+  }
 
   // ④ 그날 요일의 신규 진도 — 우선순위대로 한 바퀴씩 돌면서, 시간이 남는 만큼 계속 채운다
-  //    (과목당 하루 단원 수 제한 없음. 하루 예산 안에서 남는 단원을 채운다.)
+  //    (새 배분: 과목당 하루 단원 수 제한 없음 / 기존: 과목당 2단원까지, 배분 과목만)
   var assigned = {};
-  for (var round = 0; round < 8; round++) {
+  var maxRounds = fresh ? 8 : CFG.legacyRounds;
+  for (var round = 0; round < maxRounds; round++) {
     var gotInRound = 0;
     for (var ai = 0; ai < order.length; ai++) {
       var sid = order[ai];
@@ -1356,7 +1383,7 @@ function buildDayPlan(d, queue, idx){
       var u = nextUnitForIdx(idx, sid, assigned, asOf);
       if (!u) continue;
       var mins = CFG.unitMin[sid];
-      if (mins > budget) continue;                 // 오늘 남은 시간에 안 들어가면 다음 과목/다음 날로
+      if (fresh && mins > budget) continue;       // 새 배분: 오늘 남은 시간에 안 들어가면 다음 과목/다음 날로
       assigned[u.id] = 1;
       var head = (round === 0 && idxDoneUnits(idx, sid, asOf) === 0) ? ' 신규 진도 · ' : ' 이어서 · ';
       if (add({ id: 'new:' + u.id + '@' + d, type: 'new', kind: 'study',
@@ -1367,6 +1394,7 @@ function buildDayPlan(d, queue, idx){
     }
     if (!gotInRound) break;
   }
+  if (!fresh) addWeak();
 
   // 그날 이미 한 것(체크·기록)은 목록에서 빼지 않고 체크된 상태로 남긴다
   tasks.forEach(function(t){ t.done = planDoneOn(idx, t, d); });
@@ -1535,8 +1563,9 @@ function taskFromId(id, dateStr){
     var ru = unitById(m[1]);
     if (!ru) return null;
     return { id: id, kind: 'review', subject: ru.subject, unitId: ru.id,
-             step: Number(m[2]), minutes: 0, estMin: CFG.reviewMin[Number(m[2])] || 7,
-             offBudget: true, label: ru.label };
+             step: Number(m[2]), minutes: isNewPlan(dateStr) ? 0 : (CFG.reviewMin[Number(m[2])] || 7),
+             estMin: CFG.reviewMin[Number(m[2])] || 7,
+             offBudget: isNewPlan(dateStr), label: ru.label };
   }
   m = /^new:(.+)@(\d{4}-\d{2}-\d{2})$/.exec(id) || null;
   if (m) {
@@ -1596,7 +1625,7 @@ function briefingText(dateStr){
     L.push('  → ' + t.detail);
   });
   L.push('');
-  L.push('[간격복습] (플래시카드 앱 · 오늘 진도 시간에 안 들어감)');
+  L.push(isNewPlan(dateStr) ? '[간격복습] (플래시카드 앱 · 오늘 진도 시간에 안 들어감)' : '[간격복습]');
   if (!revs.length) L.push('- 오늘 예정된 복습 없음');
   revs.forEach(function(t){
     L.push('- ' + SUBJ_MAP[t.subject].name + ' · ' + t.title + ' (' + taskMinLabel(t) + ')');
@@ -1626,7 +1655,7 @@ function weeklyText(dateStr){
     total += m;
     L.push('- ' + fmtShort(dstr) + ' ' + (m ? m + '분' : '기록 없음') + ' / ' + lim + '분');
   }
-  L.push('- 주간 합계: ' + total + '분 / ' + CFG.weekLimit + '분 (5시간 30분)');
+  L.push('- 주간 합계: ' + total + '분 / ' + weekLimitFor(dateStr) + '분 (' + limitSpanText(weekLimitFor(dateStr)) + ')');
   L.push('');
   L.push('[과목별 진도]');
   SUBJECTS.forEach(function(s){
@@ -1650,8 +1679,13 @@ function weeklyText(dateStr){
   L.push('');
   L.push('[다음 주 우선순위]');
   L.push('1) 취약 단원 보충 복습 먼저');
-  L.push('2) 밀린 복습은 하루 ' + CFG.maxOverduePerDay + '건까지만 (플래시카드 앱 · 진도 시간에 안 들어감)');
-  L.push('3) 신규 진도는 평일 30분 · 주말 90분 안에서');
+  if (isNewPlan(dateStr)) {
+    L.push('2) 밀린 복습은 하루 ' + CFG.maxOverduePerDay + '건까지만 (플래시카드 앱 · 진도 시간에 안 들어감)');
+    L.push('3) 신규 진도는 평일 30분 · 주말 90분 안에서');
+  } else {
+    L.push('2) 밀린 복습은 하루 ' + CFG.maxOverduePerDay + '건까지만 (복습 시간은 그날 예산에 포함)');
+    L.push('3) 신규 진도는 평일 30분 · 주말 60분 안에서');
+  }
   return L.join('\n');
 }
 function monthStats(dateStr){
@@ -1998,7 +2032,7 @@ function renderRecord(){
     if (r.fromCheck) bits.push('홈 체크');
     if (r.kind === 'review') bits.push('D+' + (r.step || 1) + ' 복습');
     if (typeof r.minutes === 'number' && r.minutes > 0) bits.push(r.minutes + '분');
-    else bits.push(r.kind === 'review' ? '시간 예산 밖' : '시간 미보고');
+    else bits.push(r.kind === 'review' && isNewPlan(r.date) ? '시간 예산 밖' : '시간 미보고');
     if (r.pages) bits.push(r.pages);
     if (typeof r.questions === 'number' && r.questions > 0) {
       bits.push('문제 ' + r.questions + '·정답 ' + (r.correct == null ? '-' : r.correct)
@@ -2042,11 +2076,13 @@ function renderProgress(){
   $('subjList').innerHTML = html;
 
   var used = 0, bars = '';
+  var weekLimits = isNewPlan(dateStr) ? CFG.limits : CFG.limitsLegacy;
+  var weekMax = Math.max.apply(null, weekLimits);
   for (var i = 0; i < 7; i++) {
     var dstr = addDays(ws, i), m = minutesOn(dstr), lim = dayLimit(dstr);
     used += m;
     var h = lim ? Math.min(100, Math.round(m / lim * 100)) : 0;
-    var cap = Math.round(lim / Math.max.apply(null, CFG.limits) * 100);  // 한도에 따라 칸 높이를 다르게(평일 33%, 주말 100%)
+    var cap = Math.round(lim / weekMax * 100);  // 한도에 따라 칸 높이를 다르게(평일 33%, 주말 100%)
     bars += '<div class="wk-day" data-today="' + (dstr === todayReal() ? '1' : '0') + '">'
       + '<div class="wk-bar" style="height:' + cap + '%" title="' + m + '분 / ' + lim + '분">'
       + '<i style="height:' + h + '%"></i></div>'
@@ -2054,10 +2090,13 @@ function renderProgress(){
   }
   $('weekBars').innerHTML = bars;
   $('weekUsed').textContent = used + '분';
-  var wpct = Math.round(used / CFG.weekLimit * 100);
+  var wl = weekLimitFor(dateStr);
+  if ($('weekLimitText')) $('weekLimitText').textContent = '/ ' + wl + '분 (' + limitSpanText(wl) + ')';
+  var wpct = Math.round(used / wl * 100);
   $('weekNote').textContent = wpct >= 100
-    ? '이번 주 한도(' + CFG.weekLimit + '분)를 다 채웠어. 남은 날은 복습만 가볍게 해도 충분해.'
-    : '이번 주 ' + wpct + '% · 남은 ' + (CFG.weekLimit - used) + '분. 평일 하루 30분, 주말 90분 기준이야.';
+    ? '이번 주 한도(' + wl + '분)를 다 채웠어. 남은 날은 복습만 가볍게 해도 충분해.'
+    : '이번 주 ' + wpct + '% · 남은 ' + (wl - used) + '분. '
+      + (isNewPlan(dateStr) ? '평일 하루 30분, 주말 90분 기준이야.' : '평일 하루 30분, 주말 60분 기준이야.');
 
   var left = diffDays(dateStr, CFG.target);
   var totalUnits = UNITS.length;
@@ -2506,6 +2545,7 @@ window.PlannerCore = {
   renderAll: renderAll, recordsOn: recordsOn,
   blankState: blankState, resetState: resetState, beforeStart: beforeStart,
   ddayText: ddayText, startDate: function(){ return CFG.start; },
+  isNewPlan: isNewPlan, dayLimit: dayLimit, weekLimitFor: weekLimitFor,
   renderToday: renderToday, setViewDate: function(d){ viewDate = d; },
   accuracyOf: accuracy
 };
