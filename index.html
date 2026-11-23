@@ -164,6 +164,23 @@
   .rev-row[data-checked="1"] .rr-title{ color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
   .rev-row .rr-min{ margin-left:auto; font-size:11px; font-weight:800; color:var(--sage-deep); white-space:nowrap; flex:0 0 auto; }
 
+  /* ---------- 내일 과제 미리 보기 ---------- */
+  .ahead-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .ahead-head h3{ margin:0; }
+  .ahead-row{
+    display:flex; gap:10px; padding:12px 10px; border-radius:16px;
+    background:#F7F5EF; border:1px solid rgba(126,155,128,.10); margin-bottom:8px;
+    transition:background .18s ease, transform .14s ease;
+    cursor:pointer; -webkit-user-select:none; user-select:none;
+  }
+  .ahead-row:last-child{ margin-bottom:0; }
+  .ahead-row:active{ transform:scale(.995); }
+  .ahead-row:focus-visible{ outline:2px solid rgba(126,155,128,.55); outline-offset:2px; }
+  .ahead-row[data-checked="1"]{ background:#F3F6EE; }
+  .ahead-row[data-checked="1"] .cb{ background:var(--sage); border-color:var(--sage); }
+  .ahead-row[data-checked="1"] .cb::after{ opacity:1; }
+  .ahead-row[data-checked="1"] .task-title{ color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px; }
+
   /* ---------- concept cards ---------- */
   .concept-wrap{ display:grid; gap:8px; }
   .concept{
@@ -374,6 +391,7 @@
         <h3><span id="taskTitle">오늘 계획</span> <span class="muted small" id="taskSum" style="font-weight:600"></span></h3>
         <div id="taskList"></div>
         <p class="task-note hidden" id="deferNote"></p>
+        <p class="task-note hidden" id="pulledNote"></p>
       </div>
 
       <div class="card" id="revTodayCard" hidden>
@@ -382,6 +400,15 @@
         <div id="revTodayList"></div>
         <a class="btn ghost tiny" href="https://yunseodo08-eng.github.io/-/cards/" target="_blank" rel="noopener"
            style="display:inline-block; margin-top:10px; text-decoration:none">플래시카드 앱 열기</a>
+      </div>
+
+      <div class="card" id="aheadCard" hidden>
+        <div class="ahead-head">
+          <h3>⏩ 내일 과제 미리 보기 <span class="muted small" id="aheadSum" style="font-weight:600"></span></h3>
+          <button class="btn ghost tiny" type="button" id="toggleAhead">접기</button>
+        </div>
+        <p class="muted small" id="aheadIntro" style="margin:6px 0 9px"></p>
+        <div id="aheadList"></div>
       </div>
 
       <div class="card" id="weakCard">
@@ -1399,6 +1426,7 @@ function buildDayPlan(d, queue, idx){
   // 그날 이미 한 것(체크·기록)은 목록에서 빼지 않고 체크된 상태로 남긴다
   tasks.forEach(function(t){ t.done = planDoneOn(idx, t, d); });
   idxRecords(idx, d).forEach(function(r){
+    if (r.aheadFrom) return;   // 미리 하기 기록은 '내일 과제 미리 보기' 카드에서 따로 보여 준다
     var covered = tasks.some(function(t){ return t.type !== 'record' && recordMatchesTask(r, t); });
     if (covered) return;
     tasks.push(recordRow(r));
@@ -1479,11 +1507,139 @@ function recordRow(r){
   };
 }
 // 홈 체크 하나로 기록까지 바로 반영 (체크 해제하면 그 체크로 생긴 기록만 지운다)
-function toggleTask(id, dateStr){
-  if (dateStr > todayReal()) {
-    toast('아직 오지 않은 날이야. 그날 다시 체크해 줘');
+/* ---------- 내일 과제 미리 하기 ----------
+    아직 오지 않은 날의 과제를 오늘 해 버릴 수 있다. 기록은 오늘(todayReal()) 날짜로 남기고,
+    그 단원은 오늘 이미 한 단원이 되므로 그날 계획은 다음 단원으로 자연스럽게 이어진다.
+    계획은 '그날을 시작할 때의 기록'으로만 짜기 때문에 오늘 목록은 흔들리지 않는다. */
+function aheadRecordsFor(fromDate){
+  var today = todayReal();
+  return loadState().records.filter(function(r){
+    return r.date === today && r.aheadFrom === fromDate;
+  });
+}
+function aheadRows(){
+  var today = todayReal();
+  var tomorrow = addDays(today, 1);
+  var p = planFor(tomorrow);
+  var todayKeys = {};
+  planFor(today).tasks.forEach(function(t){
+    if (t.unitId) todayKeys[planTaskKey(t.kind, t.unitId, t.step)] = 1;
+  });
+  var rows = [], seen = {};
+  function push(t, done, rec){
+    var k = planTaskKey(t.kind, t.unitId, t.step);
+    if (seen[k]) {
+      if (done) rows.forEach(function(x){
+        if (planTaskKey(x.task.kind, x.task.unitId, x.task.step) === k) { x.done = true; x.record = rec || null; }
+      });
+      return;
+    }
+    seen[k] = 1;
+    rows.push({ task: t, done: !!done, record: rec || null });
+  }
+  p.tasks.forEach(function(t){
+    if (t.type === 'record' || t.kind === 'review' || !t.unitId) return;      // 복습은 '복습 목록'에서 따로 본다
+    if (todayKeys[planTaskKey(t.kind, t.unitId, t.step)]) return;      // 오늘 목록에 이미 있는 과제는 오늘 카드에서
+    push(t, false);
+  });
+  aheadRecordsFor(tomorrow).forEach(function(r){                       // 오늘 미리 해 둔 것(내일 목록에선 빠짐)
+    var t = taskFromId(r.taskId, tomorrow);
+    if (!t) return;
+    t.id = r.taskId;
+    if (r.minutes != null) t.minutes = Number(r.minutes) || 0;
+    if (!t.title) {
+      var u = unitById(r.unitId);
+      var sn = (SUBJ_MAP[t.subject] && SUBJ_MAP[t.subject].short) || '과제';
+      t.title = t.kind === 'review'
+        ? 'D+' + (t.step || 1) + ' 복습 · ' + (u ? u.secTitle : '단원')
+        : sn + ' 미리 진도 · ' + (u ? u.secTitle : '단원');
+    }
+    push(t, true, r);
+  });
+  return { tomorrow: tomorrow, rows: rows, plan: p };
+}
+// 미리 하기 실행/취소 — dateStr는 과제가 원래 예정된 날(오늘보다 뒤)
+function aheadToggle(id, fromDate){
+  var today = todayReal();
+  if (!fromDate || fromDate <= today) return;
+  var st = loadState();
+  var owned = st.records.filter(function(r){ return r.taskId === id && r.date === today; });
+  if (owned.length) {
+    var back = owned.reduce(function(a, r){ return a + (Number(r.minutes) || 0); }, 0);
+    st.records = st.records.filter(function(r){ return !(r.taskId === id && r.date === today); });
+    saveState();
+    renderAll();
+    toast('미리 하기를 취소했어' + (back ? ' · 오늘 기록에서 ' + back + '분 뺐어' : ''));
     return;
   }
+  var t = null;
+  planFor(fromDate).tasks.forEach(function(x){ if (x.id === id) t = x; });
+  if (!t) t = taskFromId(id, fromDate);
+  if (!t) { toast('이 과제는 그날 목록에 없어'); return; }
+  var dup = st.records.some(function(r){ return r.date === today && recordMatchesTask(r, t); });
+  if (!dup) {
+    st.records.push({
+      id: 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      createdAt: new Date().toISOString(),
+      date: today,
+      kind: t.kind === 'review' ? 'review' : 'study',
+      subject: t.subject, unitId: t.unitId, step: t.step || null,
+      customUnit: null, minutes: Number(t.minutes) || null,
+      pages: '', questions: null, correct: null, understanding: null,
+      hard: '', todo: '', weakFlag: false, taskId: id, fromCheck: true, aheadFrom: fromDate
+    });
+  }
+  saveState();
+  renderAll();
+  toast(dup ? '오늘 기록에 이미 있어'
+    : '미리 완료 · 오늘 기록에 ' + (t.minutes ? t.minutes + '분 ' : '') + '반영했어');
+}
+// 오늘 화면 '내일 과제 미리 보기' 카드
+var aheadOpen = true;
+function renderAhead(){
+  var card = $('aheadCard');
+  if (!card) return;
+  var today = todayReal();
+  if (currentView() !== today || beforeStart(today)) { card.hidden = true; return; }
+  var a = aheadRows();
+  if (!a.rows.length) { card.hidden = true; return; }
+  card.hidden = false;
+  var open = a.rows.filter(function(x){ return !x.done; });
+  var openMin = open.reduce(function(n, x){ return n + (Number(x.task.minutes) || 0); }, 0);
+  $('aheadSum').textContent = '· ' + fmtShort(a.tomorrow)
+    + (open.length ? ' · ' + open.length + '건 · ' + openMin + '분'
+                   : ' · 미리 완료 ' + a.rows.length + '건');
+  $('toggleAhead').textContent = aheadOpen ? '접기' : '펼치기';
+  $('aheadIntro').classList.toggle('hidden', !aheadOpen);
+  $('aheadList').classList.toggle('hidden', !aheadOpen);
+  $('aheadIntro').textContent = '내일로 넘어가기 전에 오늘 미리 해도 돼. 누르면 오늘 기록에 들어가고, '
+    + '내일 목록에서는 그 단원이 빠지고 다음 단원이 올라와.';
+  var html = '';
+  a.rows.slice().sort(function(x, y){       // 미리 해 둔 것을 위에 두고, 남은 과제를 아래에
+    return x.done === y.done ? 0 : (x.done ? -1 : 1);
+  }).forEach(function(x){
+    var t = x.task;
+    var s = SUBJ_MAP[t.subject] || { short: '기타', tag: 'korean' };
+    var badge = x.done
+      ? '<span class="badge b-done">미리 완료</span>'
+      : (t.badge ? '<span class="badge b-carry">' + esc(t.badge) + '</span>' : '');
+    html += '<div class="ahead-row" data-ahead="1" data-id="' + esc(t.id) + '" data-checked="' + (x.done ? 1 : 0) + '"'
+      + ' role="checkbox" tabindex="0" aria-checked="' + (x.done ? 'true' : 'false') + '"'
+      + ' aria-label="' + esc(t.title) + ' 미리 하기">'
+      + '<span class="cb" aria-hidden="true"></span>'
+      + '<div class="task-body"><div class="task-top">'
+      + '<span class="tag t-' + s.tag + '">' + esc(s.short) + '</span>'
+      + badge
+      + '<span class="min">' + esc(x.done ? '오늘 ' + (Number(t.minutes) || 0) + '분' : taskMinLabel(t)) + '</span>'
+      + '</div><p class="task-title" style="margin:5px 0 0">' + esc(t.title) + '</p>'
+      + '<p class="task-detail">' + esc(x.done
+          ? '오늘 미리 완료 · 한 번 더 누르면 취소돼'
+          : (t.detail || '') + ' · 눌러서 미리 하기') + '</p></div></div>';
+  });
+  $('aheadList').innerHTML = html;
+}
+function toggleTask(id, dateStr){
+  if (dateStr > todayReal()) { aheadToggle(id, dateStr); return; }
   var p = planFor(dateStr);
   var t = null;
   p.tasks.forEach(function(x){ if (x.id === id) t = x; });
@@ -1774,6 +1930,8 @@ function renderPreStart(dateStr, p, isReal){
   $('taskList').innerHTML = html;
   $('taskTitle').textContent = '내일 계획 미리 보기';
   $('revTodayCard').hidden = true;
+  $('aheadCard').hidden = true;
+  $('pulledNote').classList.add('hidden');
   $('taskSum').textContent = dp.total ? '· 내일 합계 ' + dp.total + '분 / ' + dp.limit + '분' : '';
   $('deferNote').classList.remove('hidden');
   $('deferNote').textContent = '오늘은 체크할 과제가 없어. 내일 열면 이 목록이 Day 1 체크리스트가 돼.';
@@ -1914,6 +2072,20 @@ function renderToday(){
       + ' → 내일로 넘어가 목록 맨 앞에 올라와. 몰아서 하지 않아도 돼.';
   } else {
     $('deferNote').classList.add('hidden');
+  }
+
+  // 내일 과제 미리 보기 (오늘 화면에서만) · 다른 날짜를 볼 때는 미리 해 둔 과제를 알려 준다
+  renderAhead();
+  var pulled = dateStr > todayReal()
+    ? loadState().records.filter(function(r){ return r.date === todayReal() && r.aheadFrom === dateStr; })
+    : [];
+  if (pulled.length) {
+    $('pulledNote').classList.remove('hidden');
+    $('pulledNote').textContent = '⏩ 오늘 미리 해 둔 과제 ' + pulled.length + '건: '
+      + pulled.map(function(r){ var u = unitById(r.unitId); return u ? u.secTitle : '단원'; }).join(' · ')
+      + ' → 이날 목록에서는 빠지고 다음 단원이 올라왔어. 되돌리려면 기록 탭의 오늘 기록을 지워 줘.';
+  } else {
+    $('pulledNote').classList.add('hidden');
   }
 
   // 취약 카드 — 보증이 필요한 단원 + 아직 첫 진도 전인 단원(미리 확어보기)
@@ -2358,6 +2530,25 @@ function bind(){
     revRowHit(e);
   });
 
+  // 내일 과제 미리 보기 — 카드를 탭하면 오늘 날짜로 미리 완료/취소
+  function aheadHit(e){
+    var row = e.target.closest ? e.target.closest('[data-ahead]') : null;
+    if (!row) return;
+    var id = row.getAttribute('data-id');
+    if (!id) return;
+    e.preventDefault();
+    toggleTask(id, addDays(todayReal(), 1));
+  }
+  $('aheadList').addEventListener('click', aheadHit);
+  $('aheadList').addEventListener('keydown', function(e){
+    if (e.key !== ' ' && e.key !== 'Enter') return;
+    aheadHit(e);
+  });
+  $('toggleAhead').addEventListener('click', function(){
+    aheadOpen = !aheadOpen;
+    renderAhead();
+  });
+
   // 개념 카드
   $('conceptList').addEventListener('click', function(e){
     var c = e.target.closest ? e.target.closest('.concept') : null;
@@ -2542,6 +2733,7 @@ window.PlannerCore = {
   firstStudyMap: firstStudyMap, weakUnits: weakUnits, weakSubjects: weakSubjects,
   loadState: loadState, saveState: saveState, saveRecord: saveRecord,
   toggleTask: toggleTask, taskDone: taskDone, migrateChecks: migrateChecks,
+  aheadRows: aheadRows, aheadToggle: aheadToggle, renderAhead: renderAhead,
   renderAll: renderAll, recordsOn: recordsOn,
   blankState: blankState, resetState: resetState, beforeStart: beforeStart,
   ddayText: ddayText, startDate: function(){ return CFG.start; },
