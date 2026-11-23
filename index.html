@@ -1506,7 +1506,6 @@ function recordRow(r){
     detail: '기록 탭에 남긴 기록이야. 고치려면 기록 탭에서 수정해 줘.', badge: '기록'
   };
 }
-// 홈 체크 하나로 기록까지 바로 반영 (체크 해제하면 그 체크로 생긴 기록만 지운다)
 /* ---------- 내일 과제 미리 하기 ----------
     아직 오지 않은 날의 과제를 오늘 해 버릴 수 있다. 기록은 오늘(todayReal()) 날짜로 남기고,
     그 단원은 오늘 이미 한 단원이 되므로 그날 계획은 다음 단원으로 자연스럽게 이어진다.
@@ -1638,6 +1637,8 @@ function renderAhead(){
   });
   $('aheadList').innerHTML = html;
 }
+// 홈 체크 하나로 기록까지 바로 반영 (체크 해제하면 그 체크로 생긴 기록만 지운다)
+// 아직 오지 않은 날의 과제면 '미리 하기'로 오늘 기록에 넣는다.
 function toggleTask(id, dateStr){
   if (dateStr > todayReal()) { aheadToggle(id, dateStr); return; }
   var p = planFor(dateStr);
