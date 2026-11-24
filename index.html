@@ -739,7 +739,13 @@ var SUBJECTS = [
     rows: [
       ['제1장 인간과 윤리', '제1절 인간의 삶과 윤리'],
       ['제1장 인간과 윤리', '제2절 윤리학의 기본 원리'],
-      ['제1장 인간과 윤리', '제3절 실천 윤리'],
+      // 제3절 실천 윤리(교재 22~64p · 43쪽)는 한 번에 30분에 못 들어가서 7~8쪽씩 6개 단원으로 나눴다(2026-11-24)
+      ['제1장 인간과 윤리', '제3절 실천 윤리 (1/6 · 22~28p)'],
+      ['제1장 인간과 윤리', '제3절 실천 윤리 (2/6 · 29~35p)'],
+      ['제1장 인간과 윤리', '제3절 실천 윤리 (3/6 · 36~42p)'],
+      ['제1장 인간과 윤리', '제3절 실천 윤리 (4/6 · 43~49p)'],
+      ['제1장 인간과 윤리', '제3절 실천 윤리 (5/6 · 50~56p)'],
+      ['제1장 인간과 윤리', '제3절 실천 윤리 (6/6 · 57~64p)'],
       ['제2장 동양 윤리와 한국 윤리 사상', '제1절 동양 및 한국 윤리 사상의 흐름'],
       ['제2장 동양 윤리와 한국 윤리 사상', '제2절 고유 사상'],
       ['제2장 동양 윤리와 한국 윤리 사상', '제3절 유교 사상'],
@@ -993,7 +999,7 @@ var STATE_VERSION = 3;
 var memoryState = null;
 
 function blankState(){
-  return { version: STATE_VERSION, records: [], checks: {}, carry: {}, viewDate: null };
+  return { version: STATE_VERSION, records: [], checks: {}, carry: {}, viewDate: null, ethicsSplit: 2 };
 }
 function loadState(){
   if (memoryState) return memoryState;
@@ -1683,6 +1689,47 @@ function toggleTask(id, dateStr){
   renderAll();
   toast((dup ? '이미 기록에 있어' : (t.offBudget ? '시간 예산 밖' : t.minutes + '분 반영'))
     + ' · ' + (t.kind === 'review' ? '복습' : '진도') + ' 완료');
+}
+/* ---------- 실천 윤리 6분할 — 저장된 단원 번호 옮기기 (2026-11-24, 앱 열 때 한 번) ----------
+   단원 id는 '과목-번호'(배열 순서)라서, 「제3절 실천 윤리」 하나를 6개로 나누면 예전 3번이 새 3~8번이 되고
+   그 뒤 단원(예전 4~16번)은 번호가 5씩 밀린다. 저장된 기록·체크의 id를 새 번호로 옮겨 준다.
+   - 예전 1·2번(인간의 삶과 윤리, 윤리학의 기본 원리)은 번호 그대로 → 기록 그대로 살아 있다.
+   - 예전 3번(실천 윤리 통째로 기록한 것)은 새 1/6 단원(22~28p)으로 남긴다. 나머지 5개는 아직 안 한 단원으로 둔다.
+   - 예전 4번부터는 +5 (예: 제2장 제1절 ethics-4 → ethics-9).
+   다른 과목 id는 건드리지 않는다. */
+var ETHICS_SPLIT_AT = 3;      // 예전 3번 = 실천 윤리(43쪽)
+var ETHICS_SPLIT_SHIFT = 5;   // 나뉜 단원 수 - 1
+function remapEthicsUnitId(id){
+  var m = /^ethics-(\d+)$/.exec(String(id || ''));
+  if (!m) return id;
+  var n = Number(m[1]);
+  if (n <= ETHICS_SPLIT_AT) return id;      // 1·2번 그대로, 3번은 새 1/6
+  return 'ethics-' + (n + ETHICS_SPLIT_SHIFT);
+}
+function remapEthicsTaskId(id){
+  return String(id || '')
+    .replace(/^(new|weak):(ethics-\d+)@/, function(_, t, uid){ return t + ':' + remapEthicsUnitId(uid) + '@'; })
+    .replace(/^rev:(ethics-\d+):/, function(_, uid){ return 'rev:' + remapEthicsUnitId(uid) + ':'; });
+}
+function migrateEthicsSplit(){
+  var st = loadState();
+  if (st.ethicsSplit === 2) return 0;
+  var moved = 0;
+  (st.records || []).forEach(function(r){
+    if (!r) return;
+    var nu = remapEthicsUnitId(r.unitId);
+    if (nu !== r.unitId) { r.unitId = nu; moved++; }
+  });
+  Object.keys(st.checks || {}).forEach(function(d){
+    var c = st.checks[d];
+    if (!c) return;
+    var out = {};
+    Object.keys(c).forEach(function(id){ out[remapEthicsTaskId(id)] = c[id]; });
+    st.checks[d] = out;
+  });
+  st.ethicsSplit = 2;
+  saveState();
+  return moved;
 }
 // 예전 버전에서 checks만 켜져 있던 데이터를 기록으로 옮겨 준다(한 번만)
 function migrateChecks(){
@@ -2714,6 +2761,7 @@ function fallbackCopy(txt, done){
    12. 시작
    ========================================================= */
 function boot(){
+  migrateEthicsSplit();   // 단원 번호를 옮긴 뒤에 체크 → 기록 이전이 돌아야 id가 맞는다
   migrateChecks();
   fillSubjectSelect();
   fillUnitSelect();
@@ -2734,6 +2782,7 @@ window.PlannerCore = {
   firstStudyMap: firstStudyMap, weakUnits: weakUnits, weakSubjects: weakSubjects,
   loadState: loadState, saveState: saveState, saveRecord: saveRecord,
   toggleTask: toggleTask, taskDone: taskDone, migrateChecks: migrateChecks,
+  migrateEthicsSplit: migrateEthicsSplit, remapEthicsUnitId: remapEthicsUnitId,
   aheadRows: aheadRows, aheadToggle: aheadToggle, renderAhead: renderAhead,
   renderAll: renderAll, recordsOn: recordsOn,
   blankState: blankState, resetState: resetState, beforeStart: beforeStart,
